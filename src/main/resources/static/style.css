@@ -1,0 +1,22 @@
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f0f0f0;
+}
+
+#container {
+  text-align: center;
+}
+
+canvas {
+  border: 1px solid black;
+}
+
+#score {
+  font-family: monospace;
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
