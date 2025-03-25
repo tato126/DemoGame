@@ -2,11 +2,14 @@ package com.example.demo.domain;
 
 import com.example.demo.canvas.Canvas;
 import com.example.demo.gameObject.Dot;
+import com.example.demo.gameObject.Obstacle;
 import com.example.demo.gameObject.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -24,14 +27,25 @@ public class GameState {
     private Player player = new Player(new Position(150, 150));
     private Dot dot = generateRandomDot();
 
+    private final List<Obstacle> obstacles = new ArrayList<>();
 
     private boolean reachedGoal = false; // 도달 여부 플래그.
+
+    private boolean collision = false;
 
     private int score = 0; // 총 점수
 
     public GameState() {
         log.debug("게임 시작 - 시작 위치: {}", player.getPosition());
         log.debug("목표물 생성 위치: {}", dot.getPosition());
+
+
+        obstacles.add(new Obstacle(new Position(100, 100)));
+        obstacles.add(new Obstacle(new Position(150, 50)));
+        obstacles.add(new Obstacle(new Position(50, 200)));
+
+        log.debug("getPlayerX : {}", getPlayerX());
+        log.debug("GetObstacles : {}", getObstacles());
     }
 
     /**
@@ -50,6 +64,14 @@ public class GameState {
 
         if (canvas.isWithinBounds(nextPosition, playerDirection.getSize())) {
             if (!nextPosition.equals(player.getPosition())) {
+
+                if (isCollidingWithObstacle(nextPosition)) {
+                    log.debug("Collision! Can't Movement : {}", collision);
+                    collision = true;
+                    return;
+                }
+
+                collision = false;
                 player = playerDirection;
                 reachedGoal = false;
 
@@ -87,6 +109,30 @@ public class GameState {
         return new Dot(new Position(dotX, dotY));
     }
 
+    /**
+     * 장애물과 충돌 유무 판정 메서드.
+     *
+     * @param userPosition 유저 객체의 크기.
+     * @return 장애물 좌표와 동일한 위치 유무.
+     */
+    private boolean isCollidingWithObstacle(Position userPosition) {
+        for (Obstacle obstacle : obstacles) {
+            Position obstaclePosition = obstacle.getPosition();
+            int size = player.getSize();
+
+            boolean overlap =
+                    userPosition.getX() < obstaclePosition.getX() + size &&
+                            userPosition.getX() + size > obstaclePosition.getX() &&
+                            userPosition.getY() < obstaclePosition.getY() + size &&
+                            userPosition.getY() + size > obstaclePosition.getY();
+
+            if (overlap) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean isReachedGoal() {
         return reachedGoal;
     }
@@ -109,5 +155,13 @@ public class GameState {
 
     public int getScore() {
         return score;
+    }
+
+    public List<Obstacle> getObstacles() {
+        return obstacles;
+    }
+
+    public boolean getCollision() {
+        return collision;
     }
 }

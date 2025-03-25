@@ -49,6 +49,6 @@ public class Position {
 
     @Override
     public String toString() {
-        return "Position [User x = %s, User y = %s]".formatted(x, y);
+        return "Position [Position x = %s, Position y = %s]".formatted(x, y);
     }
 }
