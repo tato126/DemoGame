@@ -4,6 +4,7 @@ import com.example.demo.canvas.Canvas;
 import com.example.demo.gameObject.Dot;
 import com.example.demo.gameObject.Obstacle;
 import com.example.demo.gameObject.Player;
+import com.example.demo.rule.GameRuleEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,7 @@ public class GameState {
     private static final Logger log = LoggerFactory.getLogger(GameState.class);
 
     private final Canvas canvas = new Canvas();
+    private final GameRuleEvaluator rule = new GameRuleEvaluator();
 
     private Player player = new Player(new Position(150, 150));
     private Dot dot = generateRandomDot();
@@ -30,9 +32,7 @@ public class GameState {
     private final List<Obstacle> obstacles = new ArrayList<>();
 
     private boolean reachedGoal = false; // 도달 여부 플래그.
-
     private boolean collision = false;
-
     private int score = 0; // 총 점수
 
     public GameState() {
@@ -55,27 +55,27 @@ public class GameState {
      */
     public void move(String direction) {
 
-        Player playerDirection = player.move(direction);
+        Player movedPlayer = player.move(direction);
         log.debug("player direction : {}", direction);
 
-        Position nextPosition = playerDirection.getPosition();
+        Position nextPosition = movedPlayer.getPosition();
         log.debug("Next Position : {}", nextPosition);
 
 
-        if (canvas.isWithinBounds(nextPosition, playerDirection.getSize())) {
+        if (canvas.isWithinBounds(nextPosition, movedPlayer.getSize())) {
             if (!nextPosition.equals(player.getPosition())) {
 
-                if (isCollidingWithObstacle(nextPosition)) {
+                if (rule.isColliding(nextPosition, obstacles, movedPlayer.getSize())) {
                     log.debug("Collision! Can't Movement : {}", collision);
                     collision = true;
                     return;
                 }
 
                 collision = false;
-                player = playerDirection;
+                player = movedPlayer;
                 reachedGoal = false;
 
-                if (nextPosition.equals(dot.getPosition())) {
+                if (rule.isReachedGoal(nextPosition, dot.getPosition())) {
                     score += 10;
                     dot = generateRandomDot();
                     reachedGoal = true;
@@ -107,30 +107,6 @@ public class GameState {
         log.debug("==== RandomDto location ==== : X : {}, Y : {}", dotX, dotY);
 
         return new Dot(new Position(dotX, dotY));
-    }
-
-    /**
-     * 장애물과 충돌 유무 판정 메서드.
-     *
-     * @param userPosition 유저 객체의 크기.
-     * @return 장애물 좌표와 동일한 위치 유무.
-     */
-    private boolean isCollidingWithObstacle(Position userPosition) {
-        for (Obstacle obstacle : obstacles) {
-            Position obstaclePosition = obstacle.getPosition();
-            int size = player.getSize();
-
-            boolean overlap =
-                    userPosition.getX() < obstaclePosition.getX() + size &&
-                            userPosition.getX() + size > obstaclePosition.getX() &&
-                            userPosition.getY() < obstaclePosition.getY() + size &&
-                            userPosition.getY() + size > obstaclePosition.getY();
-
-            if (overlap) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public boolean isReachedGoal() {
