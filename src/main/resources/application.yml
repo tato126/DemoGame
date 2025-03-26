@@ -4,6 +4,6 @@ server:
 logging:
   level:
     root: info
-    com.example.demo.domain: debug
+    com.example.demo: debug
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

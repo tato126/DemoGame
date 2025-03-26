@@ -41,7 +41,9 @@ public class GameService {
                 state.getScore(),
                 state.isReachedGoal(),
                 state.getCollision(),
-                obstacleDtos
+                obstacleDtos,
+                state.getPlayer().getHp(),
+                state.isGameOver()
         );
     }
 

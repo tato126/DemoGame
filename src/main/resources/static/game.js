@@ -11,7 +11,14 @@ window.addEventListener("load", () => {
   hitSound.load();
 });
 
+let isGameOver = false;
+
 document.addEventListener("keydown", (e) => {
+
+  if (isGameOver) {
+      return;
+  }
+
   let direction;
   switch (e.key) {
     case "ArrowUp": direction = "up"; break;
@@ -73,6 +80,7 @@ document.addEventListener("keydown", (e) => {
 
 
       document.getElementById("score").innerText = `Score: ${state.score}`;
+      document.getElementById("hp").innerText = `HP: ${state.hp}`;
     }
 
     fetch("/api/state")

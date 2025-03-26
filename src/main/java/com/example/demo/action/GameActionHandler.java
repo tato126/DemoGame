@@ -39,6 +39,9 @@ public class GameActionHandler {
 
         if (rule.isColliding(nextPosition, gameState.getObstacles(), player.getSize())) {
             log.debug("!!!충돌 발생 - 이동 불가!!!");
+            gameState.damagePlayer(); // 체력 감소 처리.
+
+            log.debug("SOS : Reduce Hp!!!!!!!!!!! : {}", player.getHp());
             gameState.setCollision(true);
             return;
         }
