@@ -1,6 +1,7 @@
 package com.example.demo.con;
 
 import com.example.demo.domain.GameState;
+import com.example.demo.dto.GameStateDto;
 import com.example.demo.service.GameService;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,12 +21,12 @@ public class GameController {
     }
 
     @PostMapping("/move")
-    public GameState move(@RequestParam String direction) {
+    public GameStateDto move(@RequestParam String direction) {
         return gameService.move(direction);
     }
 
     @GetMapping("/state")
-    public GameState getState() {
+    public GameStateDto getState() {
         return gameService.getGameState();
     }
 }

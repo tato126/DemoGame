@@ -49,44 +49,6 @@ public class GameState {
     }
 
     /**
-     * 플레이어의 움직임.
-     *
-     * @param direction 방향키
-     */
-    public void move(String direction) {
-
-        Player movedPlayer = player.move(direction);
-        log.debug("player direction : {}", direction);
-
-        Position nextPosition = movedPlayer.getPosition();
-        log.debug("Next Position : {}", nextPosition);
-
-
-        if (canvas.isWithinBounds(nextPosition, movedPlayer.getSize())) {
-            if (!nextPosition.equals(player.getPosition())) {
-
-                if (rule.isColliding(nextPosition, obstacles, movedPlayer.getSize())) {
-                    log.debug("Collision! Can't Movement : {}", collision);
-                    collision = true;
-                    return;
-                }
-
-                collision = false;
-                player = movedPlayer;
-                reachedGoal = false;
-
-                if (rule.isReachedGoal(nextPosition, dot.getPosition())) {
-                    score += 10;
-                    dot = generateRandomDot();
-                    reachedGoal = true;
-                }
-            }
-            log.debug("== ReachedGoal : {} ==", reachedGoal);
-            log.debug("== User Score : {} ==", score);
-        }
-    }
-
-    /**
      * 목적지 점 객체를 무작위 위치에 생성한다.
      *
      * @return 무작위 위치에 생성된 새로운 목적지.
@@ -113,6 +75,26 @@ public class GameState {
         return reachedGoal;
     }
 
+    public Player getPlayer() {
+        return player;
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    public void setCollision(boolean collision) {
+        this.collision = collision;
+    }
+
+    public void setReachedGoal(boolean reachedGoal) {
+        this.reachedGoal = reachedGoal;
+    }
+
+    public Canvas getCanvas() {
+        return canvas;
+    }
+
     public int getPlayerX() {
         return player.getPosition().getX();
     }
@@ -121,12 +103,20 @@ public class GameState {
         return player.getPosition().getY();
     }
 
+    public Dot getDot() {
+        return dot;
+    }
+
     public int getDotX() {
         return dot.getPosition().getX();
     }
 
     public int getDotY() {
         return dot.getPosition().getY();
+    }
+
+    public void setScore(int score) {
+        this.score = score;
     }
 
     public int getScore() {
@@ -139,5 +129,9 @@ public class GameState {
 
     public boolean getCollision() {
         return collision;
+    }
+
+    public void generateNewDot() {
+        this.dot = generateRandomDot();
     }
 }
