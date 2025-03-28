@@ -4,6 +4,7 @@ const ctx = canvas.getContext("2d");
 const moveSound = new Audio("/move.mp3");
 const goalSound = new Audio("/goal.mp3");
 const hitSound = new Audio("/hit.mp3");
+const deathSound = new Audio("/death.mp3");
 
 window.addEventListener("load", () => {
   moveSound.load();
@@ -38,6 +39,13 @@ document.addEventListener("keydown", (e) => {
         return res.json();
     })
     .then(state => {
+        if(state.gameOver) {
+        isGameOver = true;
+        deathSound.play();
+        draw(state);
+        alert("게임 오버! 새로고침으로 다시 시작하세요.");
+        return;
+        }
 
     console.log("Collision 값:", state.collision);
 
@@ -81,6 +89,13 @@ document.addEventListener("keydown", (e) => {
 
       document.getElementById("score").innerText = `Score: ${state.score}`;
       document.getElementById("hp").innerText = `HP: ${state.hp}`;
+
+      if (state.gameOver) {
+        ctx.fillStyle = "black";
+        ctx.font = "28px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2);
+      }
     }
 
     fetch("/api/state")
