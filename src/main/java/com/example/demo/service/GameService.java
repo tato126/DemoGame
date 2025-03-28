@@ -47,4 +47,7 @@ public class GameService {
         );
     }
 
+    public void resetGame() {
+        gameState.reset();
+    }
 }

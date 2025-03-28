@@ -38,6 +38,7 @@ public class GameState {
     public GameState() {
         log.debug("게임 시작 - 시작 위치: {}", player.getPosition());
         log.debug("목표물 생성 위치: {}", dot.getPosition());
+        log.debug("플레이어의 시작 체력 : {}", player.getHp());
 
 
         obstacles.add(new Obstacle(new Position(100, 100)));
@@ -69,6 +70,28 @@ public class GameState {
         log.debug("==== RandomDto location ==== : X : {}, Y : {}", dotX, dotY);
 
         return new Dot(new Position(dotX, dotY));
+    }
+
+    public void damagePlayer() {
+        player.reduceHp();
+
+        if (player.isDead()) {
+            gameOver = true;
+        }
+    }
+
+    public void reset() {
+        this.player = new Player(new Position(150, 150));
+        this.dot = generateRandomDot();
+        this.score = 0;
+        this.collision = false;
+        this.reachedGoal = false;
+        this.gameOver = false;
+
+        obstacles.clear();
+        obstacles.add(new Obstacle(new Position(100, 100)));
+        obstacles.add(new Obstacle(new Position(150, 50)));
+        obstacles.add(new Obstacle(new Position(50, 200)));
     }
 
     public boolean isReachedGoal() {
@@ -134,4 +157,10 @@ public class GameState {
     public void generateNewDot() {
         this.dot = generateRandomDot();
     }
+
+    public boolean isGameOver() {
+        return gameOver;
+    }
+
+    private boolean gameOver = false; // 게임 오버 판정 필드.
 }

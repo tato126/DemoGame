@@ -29,4 +29,10 @@ public class GameController {
     public GameStateDto getState() {
         return gameService.getGameState();
     }
+
+    @PostMapping("/restart")
+    public GameStateDto restart() {
+        gameService.resetGame();
+        return gameService.getGameState();
+    }
 }
