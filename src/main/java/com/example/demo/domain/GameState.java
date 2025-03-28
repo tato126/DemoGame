@@ -2,14 +2,14 @@ package com.example.demo.domain;
 
 import com.example.demo.canvas.Canvas;
 import com.example.demo.gameObject.Dot;
-import com.example.demo.gameObject.Obstacle;
+import com.example.demo.gameObject.obstacle.Obstacle;
 import com.example.demo.gameObject.Player;
+import com.example.demo.gameObject.obstacle.ObstacleFactory;
 import com.example.demo.rule.GameRuleEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -25,25 +25,25 @@ public class GameState {
 
     private final Canvas canvas = new Canvas();
     private final GameRuleEvaluator rule = new GameRuleEvaluator();
+    private final ObstacleFactory obstacleFactory;
 
-    private Player player = new Player(new Position(150, 150));
-    private Dot dot = generateRandomDot();
-
-    private final List<Obstacle> obstacles = new ArrayList<>();
+    private Player player;
+    private Dot dot;
+    private final List<Obstacle> obstacles;
 
     private boolean reachedGoal = false; // 도달 여부 플래그.
     private boolean collision = false;
     private int score = 0; // 총 점수
 
-    public GameState() {
+    public GameState(ObstacleFactory obstacleFactory) {
+        this.obstacleFactory = obstacleFactory;
+        this.player = new Player(new Position(150, 150));
+        this.dot = generateRandomDot();
+        this.obstacles = obstacleFactory.generateDefaultObstacles();
+
         log.debug("게임 시작 - 시작 위치: {}", player.getPosition());
         log.debug("목표물 생성 위치: {}", dot.getPosition());
         log.debug("플레이어의 시작 체력 : {}", player.getHp());
-
-
-        obstacles.add(new Obstacle(new Position(100, 100)));
-        obstacles.add(new Obstacle(new Position(150, 50)));
-        obstacles.add(new Obstacle(new Position(50, 200)));
 
         log.debug("getPlayerX : {}", getPlayerX());
         log.debug("GetObstacles : {}", getObstacles());
@@ -88,10 +88,7 @@ public class GameState {
         this.reachedGoal = false;
         this.gameOver = false;
 
-        obstacles.clear();
-        obstacles.add(new Obstacle(new Position(100, 100)));
-        obstacles.add(new Obstacle(new Position(150, 50)));
-        obstacles.add(new Obstacle(new Position(50, 200)));
+        obstacleFactory.generateDefaultObstacles();
     }
 
     public boolean isReachedGoal() {
