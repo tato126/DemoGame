@@ -33,27 +33,27 @@ public class GameActionHandler {
         log.debug("이동 요청: {}", direction);
         log.debug("다음 위치: {}", nextPosition);
 
+        // 캔버스 영역 밖이면 무시
         if (!gameState.getCanvas().isWithinBounds(nextPosition, player.getSize())) {
             return;
         }
 
+        // 장애물 충돌 체크.
         if (rule.isColliding(nextPosition, gameState.getObstacles(), player.getSize())) {
             log.debug("!!!충돌 발생 - 이동 불가!!!");
             gameState.damagePlayer(); // 체력 감소 처리.
-
+            gameState.checkCollision();
             log.debug("SOS : Reduce Hp!!!!!!!!!!! : {}", player.getHp());
-            gameState.setCollision(true);
             return;
         }
 
-        gameState.setCollision(false);
-        gameState.setPlayer(movedPlayer);
-        gameState.setReachedGoal(false);
+        gameState.applyPlayerMovement(movedPlayer);
+        gameState.clearCollision();
 
         if (rule.isReachedGoal(nextPosition, gameState.getDot().getPosition())) {
-            gameState.setScore(gameState.getScore() + 10);
             gameState.generateNewDot();
-            gameState.setReachedGoal(true);
+        } else {
+            gameState.checkReachedGoal();
         }
     }
 }

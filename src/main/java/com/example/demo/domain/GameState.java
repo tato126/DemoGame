@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -23,31 +24,40 @@ public class GameState {
 
     private static final Logger log = LoggerFactory.getLogger(GameState.class);
 
-    private final Canvas canvas = new Canvas();
-    private final GameRuleEvaluator rule = new GameRuleEvaluator();
+    private final Canvas canvas;
+    private final GameRuleEvaluator rule;
     private final ObstacleFactory obstacleFactory;
 
     private Player player;
     private Dot dot;
     private final List<Obstacle> obstacles;
 
-    private boolean reachedGoal = false; // 도달 여부 플래그.
-    private boolean collision = false;
-    private int score = 0; // 총 점수
+    private boolean reachedGoal; // 도달 여부 플래그.
+    private boolean collision; // 충돌 확인 여부 플래그.
+    private boolean gameOver;
+    private int score; // 총 점수
 
     public GameState(ObstacleFactory obstacleFactory) {
+        this.canvas = new Canvas();
+        this.rule = new GameRuleEvaluator();
         this.obstacleFactory = obstacleFactory;
+
         this.player = new Player(new Position(150, 150));
         this.dot = generateRandomDot();
         this.obstacles = obstacleFactory.generateDefaultObstacles();
 
+        this.reachedGoal = false;
+        this.collision = false;
+        this.gameOver = false;
+        this.score = 0;
+
         log.debug("게임 시작 - 시작 위치: {}", player.getPosition());
         log.debug("목표물 생성 위치: {}", dot.getPosition());
         log.debug("플레이어의 시작 체력 : {}", player.getHp());
-
         log.debug("getPlayerX : {}", getPlayerX());
         log.debug("GetObstacles : {}", getObstacles());
     }
+
 
     /**
      * 목적지 점 객체를 무작위 위치에 생성한다.
@@ -91,24 +101,40 @@ public class GameState {
         obstacleFactory.generateDefaultObstacles();
     }
 
+    public void applyPlayerMovement(Player movedPlayer) {
+        this.player = movedPlayer;
+    }
+
+    public void checkReachedGoal() {
+        this.reachedGoal = true;
+    }
+
+    public void checkCollision() {
+        this.collision = true;
+    }
+
+    public void clearCollision() {
+        this.collision = false;
+    }
+
+    public void increaseScore(int amount) {
+        this.score += amount;
+    }
+
+    public void generateNewDot() {
+        this.dot = generateRandomDot();
+    }
+
+    public boolean isGameOver() {
+        return gameOver;
+    }
+
     public boolean isReachedGoal() {
         return reachedGoal;
     }
 
     public Player getPlayer() {
         return player;
-    }
-
-    public void setPlayer(Player player) {
-        this.player = player;
-    }
-
-    public void setCollision(boolean collision) {
-        this.collision = collision;
-    }
-
-    public void setReachedGoal(boolean reachedGoal) {
-        this.reachedGoal = reachedGoal;
     }
 
     public Canvas getCanvas() {
@@ -135,10 +161,6 @@ public class GameState {
         return dot.getPosition().getY();
     }
 
-    public void setScore(int score) {
-        this.score = score;
-    }
-
     public int getScore() {
         return score;
     }
@@ -150,14 +172,4 @@ public class GameState {
     public boolean getCollision() {
         return collision;
     }
-
-    public void generateNewDot() {
-        this.dot = generateRandomDot();
-    }
-
-    public boolean isGameOver() {
-        return gameOver;
-    }
-
-    private boolean gameOver = false; // 게임 오버 판정 필드.
 }
