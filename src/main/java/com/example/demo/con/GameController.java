@@ -35,4 +35,9 @@ public class GameController {
         gameService.resetGame();
         return gameService.getGameState();
     }
+
+    @PostMapping("/reset")
+    public void resetGame() {
+        gameService.resetGame();
+    }
 }

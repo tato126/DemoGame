@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -30,7 +29,7 @@ public class GameState {
 
     private Player player;
     private Dot dot;
-    private final List<Obstacle> obstacles;
+    private List<Obstacle> obstacles;
 
     private boolean reachedGoal; // 도달 여부 플래그.
     private boolean collision; // 충돌 확인 여부 플래그.
@@ -44,7 +43,7 @@ public class GameState {
 
         this.player = new Player(new Position(150, 150));
         this.dot = generateRandomDot();
-        this.obstacles = obstacleFactory.generateDefaultObstacles();
+        this.obstacles = obstacleFactory.generateRandomObstacles(3, canvas.getWidth(), canvas.getHeight(), player.getSize(), player.getPosition(), dot.getPosition());
 
         this.reachedGoal = false;
         this.collision = false;
@@ -97,8 +96,13 @@ public class GameState {
         this.collision = false;
         this.reachedGoal = false;
         this.gameOver = false;
+        this.obstacles = obstacleFactory.generateRandomObstacles(3, canvas.getWidth(), canvas.getHeight(), player.getSize(), player.getPosition(), dot.getPosition());
 
-        obstacleFactory.generateDefaultObstacles();
+        log.debug("==== 게임 상태 리셋 ====");
+        log.debug("새로 생성된 장애물들: {}", obstacles);
+        log.debug("목표물 생성 위치: {}", dot.getPosition());
+        log.debug("플레이어의 시작 체력 : {}", player.getHp());
+
     }
 
     public void applyPlayerMovement(Player movedPlayer) {

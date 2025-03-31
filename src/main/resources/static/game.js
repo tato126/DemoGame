@@ -70,12 +70,11 @@ document.addEventListener("keydown", (e) => {
 });
 
 restartBtn.addEventListener("click", () => {
-    fetch("/api/restart", { method: "POST" })
-    .then(res => res.json())
-    .then(state => {
-        isGameOver = false;
-        restartBtn.style.display = "none";
-        draw(state);
+    fetch("/api/reset", { method: "POST" })
+    .then(() => {
+        fetch("/api/state")
+            .then(res => res.json())
+            .then(draw)
     });
 });
 

@@ -25,6 +25,10 @@ public class GameService {
     }
 
     public GameStateDto getGameState() {
+        if (gameState.isGameOver()) {
+            gameState.reset();
+        }
+
         return convertToDto(gameState);
     }
 
