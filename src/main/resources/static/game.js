@@ -14,10 +14,13 @@ window.addEventListener("load", () => {
 });
 
 let isGameOver = false;
+let deathAnimationProgress = 0;
+let isAnimatingDeath = false;
+let currentState = null;
 
 document.addEventListener("keydown", (e) => {
 
-  if (isGameOver) {
+  if (isGameOver || isAnimatingDeath) {
       return;
   }
 
@@ -42,9 +45,14 @@ document.addEventListener("keydown", (e) => {
     })
     .then(state => {
         if(state.gameOver) {
+        console.log("게임 오버 상태 감지")
         isGameOver = true;
+        isAnimatingDeath = true;
+        currentState = state;
+        deathAnimationProgress = 0;
         deathSound.play();
-        draw(state);
+        console.log("사망 애니메이션 시작")
+        animateDeath();
         restartBtn.style.display = "inline-block";
         return;
         }
@@ -70,11 +78,16 @@ document.addEventListener("keydown", (e) => {
 });
 
 restartBtn.addEventListener("click", () => {
-    fetch("/api/reset", { method: "POST" })
-    .then(() => {
-        fetch("/api/state")
-            .then(res => res.json())
-            .then(draw)
+  fetch("/api/reset", { method: "POST" })
+    .then(() => fetch("/api/state"))
+    .then(res => res.json())
+    .then(state => {
+      isGameOver = false;
+      isAnimatingDeath = false;
+      deathAnimationProgress = 0;
+      currentState = state;
+      restartBtn.style.display = "none";
+      draw(state);
     });
 });
 
@@ -89,7 +102,21 @@ restartBtn.addEventListener("click", () => {
 
       // 플레이어
       ctx.fillStyle = "red";
-      ctx.fillRect(state.playerX, state.playerY, 10, 10);
+
+      if (state.gameOver && isAnimatingDeath) {
+        // 죽는 중일 때 점점 작아짐
+        const maxSize = 10;
+        const currentSize = maxSize * (1 - deathAnimationProgress);
+
+        ctx.fillRect(
+            state.playerX + (maxSize - currentSize) / 2,
+            state.playerY + (maxSize - currentSize) / 2,
+            currentSize,
+            currentSize
+        );
+      } else {
+        ctx.fillRect(state.playerX, state.playerY, 10, 10);
+      }
 
       // 장애물
       ctx.fillStyle = "gray";
@@ -106,6 +133,20 @@ restartBtn.addEventListener("click", () => {
         ctx.font = "28px Arial";
         ctx.textAlign = "center";
         ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2);
+      }
+    }
+
+    function animateDeath() {
+      if (!currentState) return;
+
+      deathAnimationProgress += 0.01;
+
+      draw(currentState);
+
+      if (deathAnimationProgress < 1) {
+        requestAnimationFrame(animateDeath);
+      } else {
+        isAnimatingDeath = false;
       }
     }
 
