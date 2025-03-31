@@ -43,7 +43,7 @@ public class GameState {
 
         this.player = new Player(new Position(150, 150));
         this.dot = generateRandomDot();
-        this.obstacles = obstacleFactory.generateRandomObstacles(3, canvas.getWidth(), canvas.getHeight(), player.getSize(), player.getPosition(), dot.getPosition());
+        this.obstacles = obstacleFactory.generateObstaclesNearPath(3, player.getSize(), canvas.getWidth(), canvas.getHeight(), player.getPosition(), dot.getPosition());
 
         this.reachedGoal = false;
         this.collision = false;
@@ -96,7 +96,7 @@ public class GameState {
         this.collision = false;
         this.reachedGoal = false;
         this.gameOver = false;
-        this.obstacles = obstacleFactory.generateRandomObstacles(3, canvas.getWidth(), canvas.getHeight(), player.getSize(), player.getPosition(), dot.getPosition());
+        this.obstacles = obstacleFactory.generateObstaclesNearPath(3, player.getSize(), canvas.getWidth(), canvas.getHeight(), player.getPosition(), dot.getPosition());
 
         log.debug("==== 게임 상태 리셋 ====");
         log.debug("새로 생성된 장애물들: {}", obstacles);
