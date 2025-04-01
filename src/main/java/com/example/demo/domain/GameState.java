@@ -121,6 +121,10 @@ public class GameState {
         this.collision = false;
     }
 
+    public void clearReachedGoal() {
+        this.reachedGoal = false;
+    }
+
     public void increaseScore(int amount) {
         this.score += amount;
     }
