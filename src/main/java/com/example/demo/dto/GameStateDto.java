@@ -10,20 +10,23 @@ import java.util.List;
  */
 public class GameStateDto {
 
-    private int playerX;
-    private int playerY;
-    private int dotX;
-    private int dotY;
-    private int score;
-    private boolean reachedGoal;
-    private boolean collision;
+    private final int playerX;
+    private final int playerY;
+    private final int dotX;
+    private final int dotY;
+    private final int score;
+    private final boolean reachedGoal;
+    private final boolean collision;
 
-    private List<ObstacleDto> obstacles;
+    private final int hp;
+    private final boolean gameOver;
+
+    private final List<ObstacleDto> obstacles;
 
 
     public GameStateDto(int playerX, int playerY, int dotX, int dotY,
                         int score, boolean reachedGoal, boolean collision,
-                        List<ObstacleDto> obstacles) {
+                        List<ObstacleDto> obstacles, int hp, boolean gameOver) {
         this.playerX = playerX;
         this.playerY = playerY;
         this.dotX = dotX;
@@ -32,6 +35,8 @@ public class GameStateDto {
         this.reachedGoal = reachedGoal;
         this.collision = collision;
         this.obstacles = obstacles;
+        this.hp = hp;
+        this.gameOver = gameOver;
     }
 
     public int getPlayerX() {
@@ -64,5 +69,13 @@ public class GameStateDto {
 
     public List<ObstacleDto> getObstacles() {
         return obstacles;
+    }
+
+    public int getHp() {
+        return hp;
+    }
+
+    public boolean isGameOver() {
+        return gameOver;
     }
 }

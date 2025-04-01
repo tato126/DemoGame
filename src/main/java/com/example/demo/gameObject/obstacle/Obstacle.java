@@ -1,6 +1,9 @@
-package com.example.demo.gameObject;
+package com.example.demo.gameObject.obstacle;
 
 import com.example.demo.domain.Position;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 장애물(Obstacle) 클래스.

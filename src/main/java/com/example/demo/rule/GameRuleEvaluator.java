@@ -1,7 +1,7 @@
 package com.example.demo.rule;
 
 import com.example.demo.domain.Position;
-import com.example.demo.gameObject.Obstacle;
+import com.example.demo.gameObject.obstacle.Obstacle;
 
 import java.util.List;
 

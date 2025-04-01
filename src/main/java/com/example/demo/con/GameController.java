@@ -20,14 +20,14 @@ public class GameController {
         this.gameService = gameService;
     }
 
-    @PostMapping("/move")
-    public GameStateDto move(@RequestParam String direction) {
-        return gameService.move(direction);
-    }
-
     @GetMapping("/state")
     public GameStateDto getState() {
         return gameService.getGameState();
+    }
+
+    @PostMapping("/move")
+    public GameStateDto move(@RequestParam String direction) {
+        return gameService.move(direction);
     }
 
     @PostMapping("/restart")
