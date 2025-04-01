@@ -33,6 +33,10 @@ public class GameActionHandler {
         log.debug("이동 요청: {}", direction);
         log.debug("다음 위치: {}", nextPosition);
 
+        // 충돌 플래그 초기화
+        gameState.clearCollision();
+        gameState.clearReachedGoal();
+
         // 캔버스 영역 밖이면 무시
         if (!gameState.getCanvas().isWithinBounds(nextPosition, player.getSize())) {
             return;
@@ -47,13 +51,12 @@ public class GameActionHandler {
             return;
         }
 
-        gameState.applyPlayerMovement(movedPlayer);
-        gameState.clearCollision();
-
         if (rule.isReachedGoal(nextPosition, gameState.getDot().getPosition())) {
-            gameState.generateNewDot();
-        } else {
             gameState.checkReachedGoal();
+            gameState.increaseScore(10);
+            gameState.generateNewDot();
         }
+
+        gameState.applyPlayerMovement(movedPlayer);
     }
 }
