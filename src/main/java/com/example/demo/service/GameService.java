@@ -4,6 +4,7 @@ import com.example.demo.action.GameActionHandler;
 import com.example.demo.domain.GameState;
 import com.example.demo.dto.GameStateDto;
 import com.example.demo.dto.ObstacleDto;
+import com.example.demo.exit.DefaultExitHandler;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,10 +14,12 @@ public class GameService {
 
     private final GameState gameState;
     private final GameActionHandler actionHandler;
+    private final DefaultExitHandler exitHandler;
 
-    public GameService(GameState gameState, GameActionHandler actionHandler) {
+    public GameService(GameState gameState, GameActionHandler actionHandler, DefaultExitHandler exitHandler) {
         this.gameState = gameState;
         this.actionHandler = actionHandler;
+        this.exitHandler = exitHandler;
     }
 
     public GameStateDto move(String direction) {
@@ -53,5 +56,9 @@ public class GameService {
 
     public void resetGame() {
         gameState.reset();
+    }
+
+    public void exitGame() {
+        exitHandler.exit(0);
     }
 }
