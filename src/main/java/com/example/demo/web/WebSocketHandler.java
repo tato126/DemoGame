@@ -75,12 +75,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        sessions.put(session.getId(), session);
-        log.debug("WebSocket connection closed: {} with status {}", session.getId(), status);
-    }
-
     private void sendGameStateUpdate(WebSocketSession session, Player playerToSend) throws IOException {
         // Player 객체가 null이 아닐 때만 메시지 생성 및 전송
         if (playerToSend != null) {
@@ -127,5 +121,11 @@ public class WebSocketHandler extends TextWebSocketHandler {
                 log.error("Error broadcasting game state update", exception);
             }
         }
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        sessions.remove(session.getId());
+        log.debug("WebSocket connection closed: {} with status {}", session.getId(), status);
     }
 }
