@@ -1,5 +1,8 @@
 package com.example.demo.dto;
 
+import com.example.demo.core.Position;
+import com.example.demo.core.user.domain.Player;
+
 public class PlayerDTO {
     private String id;
     private int x;
@@ -15,6 +18,19 @@ public class PlayerDTO {
         this.x = x;
         this.y = y;
         this.size = size;
+    }
+
+    public static PlayerDTO fromPlayer(Player player) {
+        if (player == null) {
+            return null;
+        }
+        Position pos = player.getPosition();
+        return new PlayerDTO(
+                player.getId(),
+                pos.x(), // record 필드 접근
+                pos.y(), // record 필드 접근
+                player.getSize()
+        );
     }
 
     // Getter
