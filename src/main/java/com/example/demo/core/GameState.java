@@ -26,8 +26,7 @@ public class GameState {
 
     // 초기 상태 설정 (Bean 생성 시 호출됨)
     public GameState() {
-        this.player = new Player(UUID.randomUUID().toString(), new Position(50, 50), 20);
-        log.debug("Initial GameState created. Player ID: {}", this.player.getId());
+        log.debug("GameState created. Player will be initialized by GameService.");
     }
 
     public Player getPlayer() {

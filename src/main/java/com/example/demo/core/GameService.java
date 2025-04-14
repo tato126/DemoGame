@@ -2,6 +2,8 @@ package com.example.demo.core;
 
 import com.example.demo.core.user.domain.Direction;
 import com.example.demo.core.user.domain.Player;
+import com.example.demo.core.user.domain.PlayerId;
+import com.example.demo.core.user.domain.PlayerIdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,10 +16,12 @@ public class GameService {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final GameState gameState;
     private final Canvas canvas;
+    private final PlayerIdGenerator playerIdGenerator;
 
-    public GameService(GameState gameState, Canvas canvas) {
+    public GameService(GameState gameState, Canvas canvas, PlayerIdGenerator playerIdGenerator) {
         this.gameState = gameState;
         this.canvas = canvas;
+        this.playerIdGenerator = playerIdGenerator;
     }
 
     public void processPlayerMove(String playerId, Direction direction) {
@@ -41,6 +45,21 @@ public class GameService {
             log.debug("[Service] Player {} processed move to {}", movedPlayer.getId(), nextPosition);
         } else {
             log.debug("[Service] Move blocked by boundary for player {}: {} to {}", playerId, direction, nextPosition);
+        }
+    }
+
+    public Player initializeOrGetPlayer() {
+        if (gameState.getPlayer() == null) { // GameState에 플레이어가 없는 경우
+            PlayerId newPlayerId = playerIdGenerator.generateId();
+            log.debug("Generated new Player ID: {}", newPlayerId);
+            Position initialPosition = new Position(50, 50); // 초기 위치
+            int initialSize = 20;                                  // 초기 크기
+            Player newPlayer = new Player(newPlayerId.toString(), initialPosition, initialSize);
+            gameState.updatePlayer(newPlayer);
+            return newPlayer;
+        } else {
+            // 이미 플레이어가 있으면 기존 플레이어 반환 (싱글 플레이어)
+            return gameState.getPlayer();
         }
     }
 

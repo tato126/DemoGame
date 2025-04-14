@@ -41,8 +41,10 @@ public class WebSocketHandler extends TextWebSocketHandler {
         sessions.put(session.getId(), session);
         log.debug("WebSocket connection established: {}", session.getId());
 
+        Player player = gameService.initializeOrGetPlayer();
+
         // 최초 접속 시 현재 게임 상태 전송
-        sendGameStateUpdate(session);
+        sendGameStateUpdate(session, player);
     }
 
     @Override
@@ -79,16 +81,15 @@ public class WebSocketHandler extends TextWebSocketHandler {
         log.debug("WebSocket connection closed: {} with status {}", session.getId(), status);
     }
 
-    private void sendGameStateUpdate(WebSocketSession session) throws IOException {
-        Player currentPlayer = gameState.getPlayer(); // 현재 GameState의 플레이어 정보 가져오기
-
-        if (currentPlayer != null) {
+    private void sendGameStateUpdate(WebSocketSession session, Player playerToSend) throws IOException {
+        // Player 객체가 null이 아닐 때만 메시지 생성 및 전송
+        if (playerToSend != null) {
             // DTO를 사용하는 것이 좋지만, 간단히 Map으로 구성
             Map<String, Object> playerState = Map.of(
-                    "id", currentPlayer.getId(),
-                    "x", currentPlayer.getPosition().x(),
-                    "y", currentPlayer.getPosition().y(),
-                    "size", currentPlayer.getSize()
+                    "id", playerToSend.getId(), // playerToSend 에서 직접 ID를 가져옴
+                    "x", playerToSend.getPosition().x(),
+                    "y", playerToSend.getPosition().y(),
+                    "size", playerToSend.getSize()
             );
 
             Map<String, Object> gameStateMessage = Map.of(
