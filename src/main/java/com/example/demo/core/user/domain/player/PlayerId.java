@@ -1,4 +1,4 @@
-package com.example.demo.core.user.domain;
+package com.example.demo.core.user.domain.player;
 
 import java.util.Objects;
 
@@ -8,7 +8,7 @@ public class PlayerId {
 
     public PlayerId(String value) {
         if (value == null || value.isBlank()) {
-            throw new RuntimeException("PlayerId is must not be null or blank");
+            throw new RuntimeException("[Exception] PlayerId is must not be null or blank");
         }
         this.value = value;
     }
@@ -23,17 +23,17 @@ public class PlayerId {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(value);
-    }
-
-    @Override
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
         if (obj == null || getClass() != obj.getClass())
             return false;
         return Objects.equals(value, ((PlayerId) obj).value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
     }
 
     @Override
