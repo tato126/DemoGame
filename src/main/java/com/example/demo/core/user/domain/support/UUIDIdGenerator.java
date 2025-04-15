@@ -1,13 +1,13 @@
 package com.example.demo.core.user.domain.support;
 
-import com.example.demo.core.user.domain.PlayerId;
-import com.example.demo.core.user.domain.PlayerIdGenerator;
+import com.example.demo.core.user.domain.player.PlayerId;
+import com.example.demo.core.user.domain.IdGenerator;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
 @Component
-public class UUIDPlayerIdGenerator implements PlayerIdGenerator {
+public class UUIDIdGenerator implements IdGenerator {
 
 
     @Override
