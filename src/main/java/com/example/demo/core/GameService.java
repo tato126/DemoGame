@@ -1,13 +1,13 @@
 package com.example.demo.core;
 
-import com.example.demo.core.user.domain.Direction;
-import com.example.demo.core.user.domain.Player;
-import com.example.demo.core.user.domain.PlayerId;
-import com.example.demo.core.user.domain.PlayerIdGenerator;
+import com.example.demo.core.user.domain.*;
+import com.example.demo.core.user.domain.player.Player;
+import com.example.demo.core.user.domain.player.PlayerId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -16,12 +16,12 @@ public class GameService {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final GameState gameState;
     private final Canvas canvas;
-    private final PlayerIdGenerator playerIdGenerator;
+    private final IdGenerator idGenerator;
 
-    public GameService(GameState gameState, Canvas canvas, PlayerIdGenerator playerIdGenerator) {
+    public GameService(GameState gameState, Canvas canvas, IdGenerator idGenerator) {
         this.gameState = gameState;
         this.canvas = canvas;
-        this.playerIdGenerator = playerIdGenerator;
+        this.idGenerator = idGenerator;
     }
 
     public void processPlayerMove(String playerId, Direction direction) {
@@ -48,11 +48,17 @@ public class GameService {
         }
     }
 
+    // 현재는 Enemy 객체가 화면 생성이 되는지만 확인
+    public void processEnemyMove(String enemyId, Direction direction) {
+//        Enemy currentEnemy = gameState.getEnemy();
+
+    }
+
     public Player initializeOrGetPlayer() {
         if (gameState.getPlayer() == null) { // GameState에 플레이어가 없는 경우
-            PlayerId newPlayerId = playerIdGenerator.generateId();
-            log.debug("Generated new Player ID: {}", newPlayerId);
-            Position initialPosition = new Position(50, 50); // 초기 위치
+            PlayerId newPlayerId = idGenerator.generatePlayerId();
+            log.debug("[Generated] New Player ID: {}", newPlayerId);
+            Position initialPosition = new Position(50, 50); // 임시 초기 위치
             int initialSize = 20;                                  // 초기 크기
             Player newPlayer = new Player(newPlayerId.toString(), initialPosition, initialSize);
             gameState.updatePlayer(newPlayer);
@@ -63,14 +69,32 @@ public class GameService {
         }
     }
 
+    public Enemy spawnInitialEnemy() {
+        if (gameState.getEnemies() == null) { // GameState에 Enemy가 없는 경우
+            EnemyId newEnemyId = idGenerator.generateEnemyId();
+            log.debug("[Generated] New Enemy ID: {}", newEnemyId);
+            Position initialPosition = new Position(100, 100); // 임시 초기 위치
+            int initialSize = 20;
+            Enemy newEnemy = new Enemy(newEnemyId.toString(), initialPosition, initialSize);
+            gameState.updateEnemy(newEnemy);
+            return newEnemy;
+        } else {
+            // 이미 Enemy 객체가 있으면 기존 Enemy 반환
+            // 차후 플레이 양상에 따라서 변환해야할 수도 있음
+            return gameState.getEnemies();
+        }
+    }
+
     // -- 게임 상태 조회 및 리셋 메서드 --
     public Optional<GameState> getGameState() {
         return Optional.of(gameState);
     }
 
-    public void resetGame(String playerId) {
-        Player initialPlayer = new Player(playerId, new Position(50, 50), 20);
-        gameState.reset(initialPlayer);
-        log.debug("Reset Game requested for player {}", playerId);
+    // Enemy 또한 Player 와 함께 동시 초기화.
+    public void resetGame(String playerId, String enemyId) {
+        Player initialPlayer = new Player(playerId, new Position(50, 50), 20); // 임시
+        Enemy initialEnemy = new Enemy(enemyId, new Position(100, 100), 20); // 임시
+        gameState.reset(initialPlayer, initialEnemy);
+        log.debug("[Reset] Game requested for player {}", playerId);
     }
 }

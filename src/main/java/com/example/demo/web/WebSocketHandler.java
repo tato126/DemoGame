@@ -3,7 +3,9 @@ package com.example.demo.web;
 import com.example.demo.core.GameService;
 import com.example.demo.core.GameState;
 import com.example.demo.core.user.domain.Direction;
-import com.example.demo.core.user.domain.Player;
+import com.example.demo.core.user.domain.Enemy;
+import com.example.demo.core.user.domain.player.Player;
+import com.example.demo.dto.EnemyDTO;
 import com.example.demo.dto.GameStateUpdateMessage;
 import com.example.demo.dto.MoveMessage;
 import com.example.demo.dto.PlayerDTO;
@@ -43,8 +45,9 @@ public class WebSocketHandler extends TextWebSocketHandler {
         log.debug("WebSocket connection established: {}", session.getId());
 
         Player player = gameService.initializeOrGetPlayer();
+        gameService.spawnInitialEnemy();
 
-        // 최초 접속 시 현재 게임 상태 전송
+        // 최초 접속 시 현재 게임 상태 전송 (이제 Enemy 정보도 포함됨)
         sendGameStateUpdate(session, player);
     }
 
@@ -98,24 +101,33 @@ public class WebSocketHandler extends TextWebSocketHandler {
     }
 
     private void sendGameStateUpdate(WebSocketSession session, Player playerToSend) throws IOException {
+
+        Enemy currentEnemy = gameState.getEnemies();
         PlayerDTO playerDTO = PlayerDTO.fromPlayer(playerToSend);
-        // Player 객체가 null이 아닐 때만 메시지 생성 및 전송
-        if (playerToSend != null) {
-            GameStateUpdateMessage gameStateMessage = new GameStateUpdateMessage(playerDTO);
+        EnemyDTO enemyDTO = EnemyDTO.fromEnemy(currentEnemy);
+
+        // TODO: 아래 두 메서드를 통합하는 것이 좋은가? 두 메서드의 구조는 완벽하게 일치한다.
+
+        // Player 객체가 null이 아닐 때만(Enemy는 null 일 수 있음) 메시지 생성 및 전송
+        if (playerDTO != null) {
+            GameStateUpdateMessage gameStateMessage = new GameStateUpdateMessage(playerDTO, enemyDTO);
             String messageJson = objectMapper.writeValueAsString(gameStateMessage);
             session.sendMessage(new TextMessage(messageJson));
-            log.debug("Send gameStateUpdate to {}: {}", session.getId(), messageJson);
+            log.debug("[Send] Player gameStateUpdate to {}: {}", session.getId(), messageJson);
         } else {
-            log.warn("Player object is null, cannot send game state update to session: {}", session.getId());
+            log.warn("[Warn] Player object is null, cannot send game state update to session: {}", session.getId());
         }
     }
 
     private void broadcastGameStateUpdate() {
         Player currentPlayer = gameState.getPlayer();
+        Enemy currentEnemy = gameState.getEnemies();
+
         PlayerDTO playerDTO = PlayerDTO.fromPlayer(currentPlayer);
+        EnemyDTO enemyDTO = EnemyDTO.fromEnemy(currentEnemy);
 
         if (playerDTO != null) {
-            GameStateUpdateMessage gameStateUpdateMessage = new GameStateUpdateMessage(playerDTO);
+            GameStateUpdateMessage gameStateUpdateMessage = new GameStateUpdateMessage(playerDTO, enemyDTO);
 
             try {
                 String messageJson = objectMapper.writeValueAsString(gameStateUpdateMessage);

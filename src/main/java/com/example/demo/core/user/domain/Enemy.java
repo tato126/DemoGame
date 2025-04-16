@@ -4,23 +4,23 @@ import com.example.demo.core.Position;
 
 import java.util.Objects;
 
-public class Player {
+public class Enemy {
 
     private final String id;
     private final Position position;
     private final int size;
 
-
-    public Player(String id, Position position, int size) {
-        this.id = Objects.requireNonNull(id, "Id must be not null");
-        this.position = Objects.requireNonNull(position, "Position must be not null");
+    public Enemy(String id, Position position, int size) {
+        this.id = Objects.requireNonNull(id, "[Enemy] Id must be not null");
+        this.position = Objects.requireNonNull(position, "[Enemy] Position must be not null");
         this.size = size;
     }
 
-    public Player moveTo(Position position) {
-        return new Player(this.id, position, this.size);
+    public Enemy moveTo(Position position) {
+        return new Enemy(this.id, position, this.size);
     }
 
+    // Getter
     public String getId() {
         return id;
     }
@@ -39,18 +39,18 @@ public class Player {
 
         if (obj == null || getClass() != obj.getClass()) return false;
 
-        Player player = (Player) obj;
-        return id.equals(player.id);
+        Enemy enemy = (Enemy) obj;
+        return id.equals(enemy.getId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hashCode(id);
     }
 
     @Override
     public String toString() {
-        return "Player{" +
+        return "Enemy{" +
                 "id='" + id + '\'' +
                 ", position=" + position +
                 ", size=" + size +

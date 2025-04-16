@@ -4,5 +4,7 @@ import com.example.demo.core.user.domain.player.PlayerId;
 
 public interface IdGenerator {
 
-    PlayerId generateId();
+    PlayerId generatePlayerId();
+
+    EnemyId generateEnemyId();
 }

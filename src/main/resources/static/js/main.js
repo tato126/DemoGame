@@ -1,26 +1,15 @@
-console.log("main.js 로드됨 - 3단계: 웹소켓 통신");
+console.log("main.js 로드됨 - 4단계: 단일 Enemy 그리기"); // 로그 메시지 업데이트
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // --- 게임 상태 변수 (서버로부터 받을 정보) ---
-let player = { id: null, x: 50, y: 50, size: 20, color: 'red' }; // 플레이어 상태 객체
+let player = { id: null, x: 50, y: 50, size: 20, color: 'red' };
+let currentEnemy = null; // 단일 Enemy 상태 저장 변수 (초기값 null)
 
 // --- 웹소켓 관련 변수 ---
 let ws = null;
-const wsUrl = `ws://${window.location.host}/game-ws`; // 현재 호스트 기반 웹소켓 주소
-
-// --- 그리기 함수 ---
-function drawPlayer() {
-    if (!ctx) {
-        console.error("2D 컨텍스트가 없습니다.");
-        return;
-    }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.size, player.size);
-    // console.log(`플레이어 위치 (서버): (${player.x}, ${player.y})`);
-}
+const wsUrl = `ws://${window.location.host}/game-ws`;
 
 // --- 웹소켓 연결 함수 ---
 function connectWebSocket() {
@@ -29,29 +18,44 @@ function connectWebSocket() {
 
     ws.onopen = () => {
         console.log("웹소켓 연결 성공!");
-        // 연결 성공 시 필요한 초기 작업 (예: 서버에 플레이어 정보 요청)
     };
 
     ws.onmessage = (event) => {
-        // 서버로부터 메시지 수신
         // console.log("서버로부터 메시지 수신:", event.data);
         try {
             const message = JSON.parse(event.data);
             if (message.type === 'gameStateUpdate') {
-                // GameState 업데이트 메시지 처리
+                // Player 상태 업데이트
                 const serverPlayer = message.player;
                 if (serverPlayer) {
-                     // 현재 플레이어 ID와 비교 (싱글플레이어에서는 큰 의미 없으나 멀티 대비)
-                    if(player.id === null) { // 처음 상태 받을 때 ID 설정
-                       player.id = serverPlayer.id;
-                    }
+                    if(player.id === null) { player.id = serverPlayer.id; }
                     player.x = serverPlayer.x;
                     player.y = serverPlayer.y;
-                    player.size = serverPlayer.size; // 필요시 서버에서 size도 받음
-                    // 플레이어 다시 그리기
-                    drawPlayer();
+                    player.size = serverPlayer.size;
                 }
-                // 다른 게임 요소(적 등) 상태 업데이트 로직 추가 가능
+
+                // --- Enemy 상태 업데이트 (단일 객체) ---
+                const serverEnemy = message.enemy; // 'enemies' 리스트 대신 'enemy' 객체 사용
+                if (serverEnemy) {
+                    // currentEnemy 변수에 받은 정보 업데이트
+                    currentEnemy = {
+                        id: serverEnemy.id,
+                        x: serverEnemy.x,
+                        y: serverEnemy.y,
+                        size: serverEnemy.size,
+                        color: 'blue' // Enemy 색상 지정 (예시)
+                    };
+                } else {
+                     // 서버에서 enemy 정보가 null로 오면 클라이언트 상태도 null로 설정
+                     currentEnemy = null;
+                }
+                // --- Enemy 상태 업데이트 끝 ---
+
+                // Player와 Enemy 상태를 모두 반영하여 캔버스 다시 그리기
+                drawGame(); // drawPlayer 대신 drawGame 호출
+
+            } else if (message.type === 'error') {
+                console.error("Server error:", message.message);
             }
         } catch (e) {
             console.error("메시지 처리 오류:", e);
@@ -65,12 +69,11 @@ function connectWebSocket() {
     ws.onclose = (event) => {
         console.log("웹소켓 연결 종료:", event.code, event.reason);
         ws = null;
-        // 필요시 재연결 로직 추가
          setTimeout(connectWebSocket, 5000); // 5초 후 재연결 시도
     };
 }
 
-// --- 키보드 입력 처리 함수 ---
+// --- 키보드 입력 처리 함수 (변경 없음) ---
 function handleKeyDown(e) {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         console.warn("웹소켓이 연결되지 않았습니다.");
@@ -90,22 +93,41 @@ function handleKeyDown(e) {
     }
 
     if (direction) {
-        // 이동 메시지를 서버로 전송
         const moveMessage = {
             type: "move",
-            playerId: player.id, // GameState에서 관리하는 플레이어 ID
+            playerId: player.id,
             direction: direction
         };
         ws.send(JSON.stringify(moveMessage));
-        // console.log("서버로 이동 메시지 전송:", moveMessage);
-        // 로컬에서 바로 그리지 않고 서버 응답을 기다림
+    }
+}
+
+// --- 통합 그리기 함수 ---
+function drawGame() {
+    if (!ctx) {
+        console.error("2D 컨텍스트가 없습니다.");
+        return;
+    }
+    // 1. 캔버스 클리어
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 2. 플레이어 그리기
+    if (player && player.id) { // player 객체 및 id 존재 확인
+        ctx.fillStyle = player.color;
+        ctx.fillRect(player.x, player.y, player.size, player.size);
+    }
+
+    // 3. 적(Enemy) 그리기
+    if (currentEnemy) { // currentEnemy 객체가 null이 아닐 때만 그림
+         ctx.fillStyle = currentEnemy.color || 'blue'; // Enemy 색상 사용 (없으면 기본값)
+         ctx.fillRect(currentEnemy.x, currentEnemy.y, currentEnemy.size, currentEnemy.size);
     }
 }
 
 // --- 초기화 코드 ---
 if (canvas && ctx) {
-    // 초기 화면 그리기 (서버 연결 전 기본 위치)
-    drawPlayer();
+    // 초기 화면 그리기 (Player와 Enemy 모두 그리는 함수 호출)
+    drawGame(); // drawPlayer 대신 drawGame 호출
 
     // 웹소켓 연결 시작
     connectWebSocket();
