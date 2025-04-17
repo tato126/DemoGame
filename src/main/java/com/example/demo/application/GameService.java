@@ -1,13 +1,17 @@
-package com.example.demo.core;
+package com.example.demo.application;
 
-import com.example.demo.core.user.domain.*;
-import com.example.demo.core.user.domain.player.Player;
-import com.example.demo.core.user.domain.player.PlayerId;
+import com.example.demo.domain.support.IdGenerator;
+import com.example.demo.infrastructure.config.Canvas;
+import com.example.demo.domain.common.Direction;
+import com.example.demo.domain.common.Position;
+import com.example.demo.domain.enemy.Enemy;
+import com.example.demo.domain.enemy.EnemyId;
+import com.example.demo.domain.player.Player;
+import com.example.demo.domain.player.PlayerId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service

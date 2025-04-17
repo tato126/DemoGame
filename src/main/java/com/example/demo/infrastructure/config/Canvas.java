@@ -1,5 +1,6 @@
-package com.example.demo.core;
+package com.example.demo.infrastructure.config;
 
+import com.example.demo.domain.common.Position;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

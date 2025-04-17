@@ -1,8 +1,8 @@
-package com.example.demo.core.user.domain.support;
+package com.example.demo.infrastructure.generator;
 
-import com.example.demo.core.user.domain.EnemyId;
-import com.example.demo.core.user.domain.player.PlayerId;
-import com.example.demo.core.user.domain.IdGenerator;
+import com.example.demo.domain.enemy.EnemyId;
+import com.example.demo.domain.player.PlayerId;
+import com.example.demo.domain.support.IdGenerator;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;

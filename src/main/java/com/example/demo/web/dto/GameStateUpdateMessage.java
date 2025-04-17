@@ -1,6 +1,4 @@
-package com.example.demo.dto;
-
-import java.util.List;
+package com.example.demo.web.dto;
 
 public class GameStateUpdateMessage {
 

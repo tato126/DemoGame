@@ -1,6 +1,4 @@
-package com.example.demo.core.user.domain;
-
-import com.example.demo.core.Position;
+package com.example.demo.domain.common;
 
 public enum Direction {
     UP, DOWN, LEFT, RIGHT;

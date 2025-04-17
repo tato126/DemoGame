@@ -1,6 +1,5 @@
-package com.example.demo.web;
+package com.example.demo.infrastructure.config;
 
-import com.example.demo.core.Canvas;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

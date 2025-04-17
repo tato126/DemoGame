@@ -1,6 +1,6 @@
-package com.example.demo.core.user.domain.player;
+package com.example.demo.domain.player;
 
-import com.example.demo.core.Position;
+import com.example.demo.domain.common.Position;
 
 import java.util.Objects;
 

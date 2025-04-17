@@ -1,33 +1,35 @@
-package com.example.demo.dto;
+package com.example.demo.web.dto;
 
-import com.example.demo.core.Position;
-import com.example.demo.core.user.domain.Enemy;
+import com.example.demo.domain.common.Position;
+import com.example.demo.domain.player.Player;
 
-public class EnemyDTO {
-
+public class PlayerDTO {
     private String id;
     private int x;
     private int y;
     private int size;
 
 
-    public EnemyDTO(String id, int x, int y, int size) {
+    public PlayerDTO() {
+    }
+
+    public PlayerDTO(String id, int x, int y, int size) {
         this.id = id;
         this.x = x;
         this.y = y;
         this.size = size;
     }
 
-    public static EnemyDTO fromEnemy(Enemy enemy) {
-        if (enemy == null) {
+    public static PlayerDTO fromPlayer(Player player) {
+        if (player == null) {
             return null;
         }
-
-        Position pos = enemy.getPosition();
-        return new EnemyDTO(enemy.getId(),
-                pos.x(),
-                pos.y(),
-                enemy.getSize()
+        Position pos = player.getPosition();
+        return new PlayerDTO(
+                player.getId(),
+                pos.x(), // record 필드 접근
+                pos.y(), // record 필드 접근
+                player.getSize()
         );
     }
 
@@ -49,7 +51,6 @@ public class EnemyDTO {
     }
 
     // Setter
-
     public void setId(String id) {
         this.id = id;
     }

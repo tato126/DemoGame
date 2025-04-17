@@ -1,4 +1,4 @@
-package com.example.demo.web;
+package com.example.demo.web.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;

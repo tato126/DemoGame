@@ -1,7 +1,7 @@
-package com.example.demo.core;
+package com.example.demo.application;
 
-import com.example.demo.core.user.domain.Enemy;
-import com.example.demo.core.user.domain.player.Player;
+import com.example.demo.domain.enemy.Enemy;
+import com.example.demo.domain.player.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

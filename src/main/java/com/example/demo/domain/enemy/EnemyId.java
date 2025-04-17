@@ -1,4 +1,4 @@
-package com.example.demo.core.user.domain;
+package com.example.demo.domain.enemy;
 
 import java.util.Objects;
 

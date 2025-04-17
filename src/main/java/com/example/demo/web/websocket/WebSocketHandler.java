@@ -1,14 +1,14 @@
-package com.example.demo.web;
+package com.example.demo.web.websocket;
 
-import com.example.demo.core.GameService;
-import com.example.demo.core.GameState;
-import com.example.demo.core.user.domain.Direction;
-import com.example.demo.core.user.domain.Enemy;
-import com.example.demo.core.user.domain.player.Player;
-import com.example.demo.dto.EnemyDTO;
-import com.example.demo.dto.GameStateUpdateMessage;
-import com.example.demo.dto.MoveMessage;
-import com.example.demo.dto.PlayerDTO;
+import com.example.demo.application.GameService;
+import com.example.demo.application.GameState;
+import com.example.demo.domain.common.Direction;
+import com.example.demo.domain.enemy.Enemy;
+import com.example.demo.domain.player.Player;
+import com.example.demo.web.dto.EnemyDTO;
+import com.example.demo.web.dto.GameStateUpdateMessage;
+import com.example.demo.web.dto.MoveMessage;
+import com.example.demo.web.dto.PlayerDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,4 +1,4 @@
-package com.example.demo.core.user.domain.player;
+package com.example.demo.domain.player;
 
 import java.util.Objects;
 
