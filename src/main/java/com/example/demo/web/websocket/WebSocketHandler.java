@@ -102,7 +102,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     private void sendGameStateUpdate(WebSocketSession session, Player playerToSend) throws IOException {
 
-        Enemy currentEnemy = gameState.getEnemies();
+        Enemy currentEnemy = gameState.getEnemy();
         PlayerDTO playerDTO = PlayerDTO.fromPlayer(playerToSend);
         EnemyDTO enemyDTO = EnemyDTO.fromEnemy(currentEnemy);
 
@@ -119,9 +119,9 @@ public class WebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void broadcastGameStateUpdate() {
+    public void broadcastGameStateUpdate() {
         Player currentPlayer = gameState.getPlayer();
-        Enemy currentEnemy = gameState.getEnemies();
+        Enemy currentEnemy = gameState.getEnemy();
 
         PlayerDTO playerDTO = PlayerDTO.fromPlayer(currentPlayer);
         EnemyDTO enemyDTO = EnemyDTO.fromEnemy(currentEnemy);

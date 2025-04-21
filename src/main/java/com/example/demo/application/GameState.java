@@ -92,7 +92,7 @@ public class GameState {
         return player;
     }
 
-    public Enemy getEnemies() {
+    public Enemy getEnemy() {
         return enemy;
     }
 }

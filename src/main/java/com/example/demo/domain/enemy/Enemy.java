@@ -1,5 +1,6 @@
 package com.example.demo.domain.enemy;
 
+import com.example.demo.domain.common.Direction;
 import com.example.demo.domain.common.Position;
 
 import java.util.Objects;
@@ -9,15 +10,25 @@ public class Enemy {
     private final String id;
     private final Position position;
     private final int size;
+    private final Direction direction;
 
-    public Enemy(String id, Position position, int size) {
+    public Enemy(String id, Position position, int size, Direction direction) {
         this.id = Objects.requireNonNull(id, "[Enemy] Id must be not null");
         this.position = Objects.requireNonNull(position, "[Enemy] Position must be not null");
         this.size = size;
+        this.direction = direction;
+    }
+
+    public Enemy(String id, Position position, int size) {
+        this(id, position, size, Direction.RIGHT);
     }
 
     public Enemy moveTo(Position position) {
-        return new Enemy(this.id, position, this.size);
+        return new Enemy(this.id, position, this.size, this.direction);
+    }
+
+    public Enemy changeDirection(Direction newDirection) {
+        return new Enemy(this.id, this.position, this.size, newDirection);
     }
 
     // Getter
@@ -31,6 +42,10 @@ public class Enemy {
 
     public int getSize() {
         return size;
+    }
+
+    public Direction getDirection() {
+        return direction;
     }
 
     @Override
@@ -54,6 +69,7 @@ public class Enemy {
                 "id='" + id + '\'' +
                 ", position=" + position +
                 ", size=" + size +
+                ", direction=" + direction +
                 '}';
     }
 }

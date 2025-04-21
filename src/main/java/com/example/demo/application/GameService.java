@@ -53,7 +53,7 @@ public class GameService {
     }
 
     // 현재는 Enemy 객체가 화면 생성이 되는지만 확인
-    public void processEnemyMove(String enemyId, Direction direction) {
+    public void processEnemyMove(String enemyId) {
 //        Enemy currentEnemy = gameState.getEnemy();
 
     }
@@ -62,8 +62,12 @@ public class GameService {
         if (gameState.getPlayer() == null) { // GameState에 플레이어가 없는 경우
             PlayerId newPlayerId = idGenerator.generatePlayerId();
             log.debug("[Generated] New Player ID: {}", newPlayerId);
-            Position initialPosition = new Position(50, 50); // 임시 초기 위치
-            int initialSize = 20;                                  // 초기 크기
+            int initialSize = 20;
+
+            int startX = (canvas.getWidth() / 2) - (initialSize / 2);
+            int startY = (canvas.getHeight() / 2) - (initialSize / 2);
+
+            Position initialPosition = new Position(startX, startY); // 임시 초기 위치
             Player newPlayer = new Player(newPlayerId.toString(), initialPosition, initialSize);
             gameState.updatePlayer(newPlayer);
             return newPlayer;
@@ -74,18 +78,24 @@ public class GameService {
     }
 
     public Enemy spawnInitialEnemy() {
-        if (gameState.getEnemies() == null) { // GameState에 Enemy가 없는 경우
+        if (gameState.getEnemy() == null) { // GameState에 Enemy가 없는 경우
             EnemyId newEnemyId = idGenerator.generateEnemyId();
             log.debug("[Generated] New Enemy ID: {}", newEnemyId);
-            Position initialPosition = new Position(100, 100); // 임시 초기 위치
+
             int initialSize = 20;
+
+            int startX = (canvas.getWidth() / 2) - (initialSize / 2);
+            int startY = 50;
+
+            Position initialPosition = new Position(startX, startY); // 임시 초기 위치
+
             Enemy newEnemy = new Enemy(newEnemyId.toString(), initialPosition, initialSize);
             gameState.updateEnemy(newEnemy);
             return newEnemy;
         } else {
             // 이미 Enemy 객체가 있으면 기존 Enemy 반환
             // 차후 플레이 양상에 따라서 변환해야할 수도 있음
-            return gameState.getEnemies();
+            return gameState.getEnemy();
         }
     }
 
