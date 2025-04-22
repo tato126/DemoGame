@@ -26,7 +26,7 @@ public class PlayerDTO {
         }
         Position pos = player.getPosition();
         return new PlayerDTO(
-                player.getId(),
+                player.getId().toString(),
                 pos.x(), // record 필드 접근
                 pos.y(), // record 필드 접근
                 player.getSize()

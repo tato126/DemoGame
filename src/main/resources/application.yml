@@ -3,7 +3,6 @@ game:
     width: 400
     height: 300
 
-
 server:
   port: 8081
 

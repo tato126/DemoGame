@@ -1,5 +1,12 @@
 package com.example.demo.application;
 
+import com.example.demo.application.physics.MoveValidationService;
+import com.example.demo.domain.enemy.application.EnemyCleanUp;
+import com.example.demo.domain.enemy.application.EnemyFind;
+import com.example.demo.domain.enemy.application.EnemyRegistry;
+import com.example.demo.domain.player.application.PlayerCleanUp;
+import com.example.demo.domain.player.application.PlayerFind;
+import com.example.demo.domain.player.application.PlayerRegistry;
 import com.example.demo.domain.support.IdGenerator;
 import com.example.demo.infrastructure.config.Canvas;
 import com.example.demo.domain.common.Direction;
@@ -18,24 +25,40 @@ import java.util.Optional;
 public class GameService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final GameState gameState;
-    private final Canvas canvas;
     private final IdGenerator idGenerator;
+    private final MoveValidationService validationService;
+    private final Canvas canvas;
 
-    public GameService(GameState gameState, Canvas canvas, IdGenerator idGenerator) {
-        this.gameState = gameState;
-        this.canvas = canvas;
+    private final PlayerFind playerFind;
+    private final PlayerRegistry playerRegistry;
+    private final PlayerCleanUp playerCleanUp;
+
+    private final EnemyFind enemyFind;
+    private final EnemyRegistry enemyRegistry;
+    private final EnemyCleanUp enemyCleanUp;
+
+    public GameService(IdGenerator idGenerator, MoveValidationService validationService, Canvas canvas, PlayerFind playerFind, PlayerRegistry playerRegistry, PlayerCleanUp playerCleanUp, EnemyFind enemyFind, EnemyRegistry enemyRegistry, EnemyCleanUp enemyCleanUp) {
+        this.validationService = validationService;
         this.idGenerator = idGenerator;
+        this.canvas = canvas;
+        this.playerFind = playerFind;
+        this.playerRegistry = playerRegistry;
+        this.playerCleanUp = playerCleanUp;
+        this.enemyFind = enemyFind;
+        this.enemyRegistry = enemyRegistry;
+        this.enemyCleanUp = enemyCleanUp;
     }
 
-    public void processPlayerMove(String playerId, Direction direction) {
-        Player currentPlayer = gameState.getPlayer();
-        if (currentPlayer == null) {
-            log.debug("[Service] No player found int GameState.");
+    public void processPlayerMove(String playerIdStr, Direction direction) {
+        PlayerId playerId = PlayerId.of(playerIdStr);
+        Optional<Player> playerOptional = playerFind.byId(playerId);
+
+        if (playerOptional.isEmpty()) {
+            log.warn("[Service] Received move request for non-existent player ID: {}", playerIdStr);
             return;
         }
 
-        // TODO: playerId 검증 로직 추가 (현재는 단일 플레이어라 생략)
+        Player currentPlayer = playerOptional.get();
 
         // 다음 위치 계산
         Position currentPosition = currentPlayer.getPosition();
@@ -43,72 +66,65 @@ public class GameService {
         Position nextPosition = direction.move(currentPosition, step);
 
         // 경계 검사
-        if (canvas.isWithinBounds(nextPosition, currentPlayer.getSize())) {
+        if (validationService.isPlayerMoveValid(currentPlayer, nextPosition)) {
             Player movedPlayer = currentPlayer.moveTo(nextPosition);
-            gameState.updatePlayer(movedPlayer);
-            log.debug("[Service] Player {} processed move to {}", movedPlayer.getId(), nextPosition);
+            playerRegistry.addOrUpdate(movedPlayer);
+            log.debug("[Service] Player {} processed move to {}", currentPlayer.getId(), nextPosition);
         } else {
-            log.debug("[Service] Move blocked by boundary for player {}: {} to {}", playerId, direction, nextPosition);
+            log.debug("[Service] Player {} move to {} is invalid.", currentPlayer.getId(), nextPosition);
+            // 이동 실패 시 추가 로직 (예: 클라이언트에 알림) 필요시 추가
         }
-    }
-
-    // 현재는 Enemy 객체가 화면 생성이 되는지만 확인
-    public void processEnemyMove(String enemyId) {
-//        Enemy currentEnemy = gameState.getEnemy();
-
+        // 플레이어 이동 후 broadcast는 WebSocketHandler에서 호출됨
     }
 
     public Player initializeOrGetPlayer() {
-        if (gameState.getPlayer() == null) { // GameState에 플레이어가 없는 경우
-            PlayerId newPlayerId = idGenerator.generatePlayerId();
-            log.debug("[Generated] New Player ID: {}", newPlayerId);
-            int initialSize = 20;
+        PlayerId newPlayerId = idGenerator.generatePlayerId();
+        log.debug("[Generated] New Player ID: {}", newPlayerId);
 
-            int startX = (canvas.getWidth() / 2) - (initialSize / 2);
-            int startY = (canvas.getHeight() / 2) - (initialSize / 2);
+        int initialSize = 20;
+        int startX = (canvas.getWidth() / 2) - (initialSize / 2);
+        int startY = (canvas.getHeight() / 2) - (initialSize / 2);
+        Position initialPosition = new Position(startX, startY); // 임시 초기 위치
 
-            Position initialPosition = new Position(startX, startY); // 임시 초기 위치
-            Player newPlayer = new Player(newPlayerId.toString(), initialPosition, initialSize);
-            gameState.updatePlayer(newPlayer);
-            return newPlayer;
-        } else {
-            // 이미 플레이어가 있으면 기존 플레이어 반환 (싱글 플레이어)
-            return gameState.getPlayer();
-        }
+        Player newPlayer = new Player(newPlayerId, initialPosition, initialSize);
+
+
+        playerRegistry.addOrUpdate(newPlayer);
+        log.debug("[Service] New Player initialized and registered: {}", newPlayer);
+        return newPlayer;
     }
-
     public Enemy spawnInitialEnemy() {
-        if (gameState.getEnemy() == null) { // GameState에 Enemy가 없는 경우
+        if (enemyFind.findAll().isEmpty()) {
             EnemyId newEnemyId = idGenerator.generateEnemyId();
-            log.debug("[Generated] New Enemy ID: {}", newEnemyId);
+            log.debug("[Service] Spawning initial enemy with ID: {}", newEnemyId);
 
             int initialSize = 20;
-
+            int initialY = 50;
             int startX = (canvas.getWidth() / 2) - (initialSize / 2);
-            int startY = 50;
+            Position initialPosition = new Position(startX, initialY);
 
-            Position initialPosition = new Position(startX, startY); // 임시 초기 위치
-
-            Enemy newEnemy = new Enemy(newEnemyId.toString(), initialPosition, initialSize);
-            gameState.updateEnemy(newEnemy);
+            Enemy newEnemy = new Enemy(newEnemyId, initialPosition, initialSize);
+            enemyRegistry.addOrUpdate(newEnemy);
+            log.info("[Service] Initial enemy spawned and registered: {}", newEnemyId);
             return newEnemy;
         } else {
-            // 이미 Enemy 객체가 있으면 기존 Enemy 반환
-            // 차후 플레이 양상에 따라서 변환해야할 수도 있음
-            return gameState.getEnemy();
+            log.debug("[Service] Initial enemy already exists. Skipping spawn.");
+            // 기존 적 중 하나를 반환하거나 null 반환 (게임 규칙에 따라)
+            // 첫 번째 적을 반환하는 것이 의미 없을 수 있으므로 null 반환 고려
+            return enemyFind.findAll().stream().findFirst().orElse(null);
         }
     }
 
-    // -- 게임 상태 조회 및 리셋 메서드 --
-    public Optional<GameState> getGameState() {
-        return Optional.of(gameState);
+    public void removePlayer(PlayerId playerId) {
+        playerCleanUp.remove(playerId);
+        log.debug("[Service] Player removed: {}", playerId);
     }
 
     // Enemy 또한 Player 와 함께 동시 초기화.
-    public void resetGame(String playerId, String enemyId) {
-        Player initialPlayer = new Player(playerId, new Position(50, 50), 20); // 임시
-        Enemy initialEnemy = new Enemy(enemyId, new Position(100, 100), 20); // 임시
-        gameState.reset(initialPlayer, initialEnemy);
-        log.debug("[Reset] Game requested for player {}", playerId);
+    public void resetGame() {
+        log.debug("[Service] Initiating game reset...");
+        playerCleanUp.clearAll();
+        enemyCleanUp.clearAll();
+        log.info("[Service] Game reset complete. Players and Enemies cleared.");
     }
 }

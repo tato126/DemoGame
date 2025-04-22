@@ -7,19 +7,19 @@ import java.util.Objects;
 
 public class Enemy {
 
-    private final String id;
+    private final EnemyId id;
     private final Position position;
     private final int size;
     private final Direction direction;
 
-    public Enemy(String id, Position position, int size, Direction direction) {
+    public Enemy(EnemyId id, Position position, int size, Direction direction) {
         this.id = Objects.requireNonNull(id, "[Enemy] Id must be not null");
         this.position = Objects.requireNonNull(position, "[Enemy] Position must be not null");
         this.size = size;
         this.direction = direction;
     }
 
-    public Enemy(String id, Position position, int size) {
+    public Enemy(EnemyId id, Position position, int size) {
         this(id, position, size, Direction.RIGHT);
     }
 
@@ -32,7 +32,7 @@ public class Enemy {
     }
 
     // Getter
-    public String getId() {
+    public EnemyId getId() {
         return id;
     }
 

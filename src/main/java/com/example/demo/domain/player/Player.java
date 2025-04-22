@@ -6,12 +6,12 @@ import java.util.Objects;
 
 public class Player {
 
-    private final String id;
+    private final PlayerId id;
     private final Position position;
     private final int size;
 
 
-    public Player(String id, Position position, int size) {
+    public Player(PlayerId id, Position position, int size) {
         this.id = Objects.requireNonNull(id, "[Player] Id must be not null");
         this.position = Objects.requireNonNull(position, "[Player] Position must be not null");
         this.size = size;
@@ -22,7 +22,7 @@ public class Player {
     }
 
     // Getter
-    public String getId() {
+    public PlayerId getId() {
         return id;
     }
 

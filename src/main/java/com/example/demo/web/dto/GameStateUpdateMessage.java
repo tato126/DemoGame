@@ -1,32 +1,35 @@
 package com.example.demo.web.dto;
 
+import com.example.demo.domain.player.Player;
+
+import java.util.List;
+
 public class GameStateUpdateMessage {
 
     private String type = "gameStateUpdate"; // 타입 고정
-    private PlayerDTO player;
-
-    // 난중에 다른 게임 요소 (enemies, item 등) 리스트 추가 가능
-    private EnemyDTO enemy;
+    private List<PlayerDTO> players;
+    private List<EnemyDTO> enemies;
 
     public GameStateUpdateMessage() {
     }
 
-    public GameStateUpdateMessage(PlayerDTO player, EnemyDTO enemy) {
-        this.player = player;
-        this.enemy = enemy;
+    public GameStateUpdateMessage(List<PlayerDTO> players, List<EnemyDTO> enemies) {
+        this.players = players;
+        this.enemies = enemies;
     }
+
 
     // Getter
     public String getType() {
         return type;
     }
 
-    public PlayerDTO getPlayer() {
-        return player;
+    public List<PlayerDTO> getPlayers() {
+        return players;
     }
 
-    public EnemyDTO getEnemy() {
-        return enemy;
+    public List<EnemyDTO> getEnemies() {
+        return enemies;
     }
 
     // Setter
@@ -34,11 +37,11 @@ public class GameStateUpdateMessage {
         this.type = type;
     }
 
-    public void setPlayer(PlayerDTO player) {
-        this.player = player;
+    public void setPlayers(List<PlayerDTO> players) {
+        this.players = players;
     }
 
-    public void setEnemy(EnemyDTO enemy) {
-        this.enemy = enemy;
+    public void setEnemies(List<EnemyDTO> enemies) {
+        this.enemies = enemies;
     }
 }

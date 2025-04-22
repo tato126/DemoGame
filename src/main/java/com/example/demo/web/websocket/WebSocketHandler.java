@@ -1,10 +1,12 @@
 package com.example.demo.web.websocket;
 
 import com.example.demo.application.GameService;
-import com.example.demo.application.GameState;
 import com.example.demo.domain.common.Direction;
 import com.example.demo.domain.enemy.Enemy;
+import com.example.demo.domain.enemy.application.EnemyFind;
 import com.example.demo.domain.player.Player;
+import com.example.demo.domain.player.PlayerId;
+import com.example.demo.domain.player.application.PlayerFind;
 import com.example.demo.web.dto.EnemyDTO;
 import com.example.demo.web.dto.GameStateUpdateMessage;
 import com.example.demo.web.dto.MoveMessage;
@@ -19,8 +21,11 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Component
 public class WebSocketHandler extends TextWebSocketHandler {
@@ -28,15 +33,18 @@ public class WebSocketHandler extends TextWebSocketHandler {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final ObjectMapper objectMapper;
     private final GameService gameService;
-    private final GameState gameState; // GameState 초기화
 
-    // 연결된 세션들 관리 (간단 버전, 멀티플레이어 시 개선 필요)
+    private final PlayerFind playerFind;
+    private final EnemyFind enemyFind;
+
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+    private final Map<String, PlayerId> sessionPlayerMap = new ConcurrentHashMap<>();
 
-    public WebSocketHandler(ObjectMapper objectMapper, GameService gameService, GameState gameState) {
+    public WebSocketHandler(ObjectMapper objectMapper, GameService gameService, PlayerFind playerFind, EnemyFind enemyFind) {
         this.objectMapper = objectMapper;
         this.gameService = gameService;
-        this.gameState = gameState; // GameState 초기화
+        this.playerFind = playerFind;
+        this.enemyFind = enemyFind;
     }
 
     @Override
@@ -44,11 +52,16 @@ public class WebSocketHandler extends TextWebSocketHandler {
         sessions.put(session.getId(), session);
         log.debug("WebSocket connection established: {}", session.getId());
 
-        Player player = gameService.initializeOrGetPlayer();
+        gameService.resetGame();
+
+        Player newPlayer = gameService.initializeOrGetPlayer();
+        sessionPlayerMap.put(session.getId(), newPlayer.getId());
+
         gameService.spawnInitialEnemy();
 
-        // 최초 접속 시 현재 게임 상태 전송 (이제 Enemy 정보도 포함됨)
-        sendGameStateUpdate(session, player);
+        sendFullGameState(session);
+
+        broadcastGameStateUpdate();
     }
 
     @Override
@@ -100,46 +113,56 @@ public class WebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void sendGameStateUpdate(WebSocketSession session, Player playerToSend) throws IOException {
+    private void sendFullGameState(WebSocketSession session) throws IOException {
 
-        Enemy currentEnemy = gameState.getEnemy();
-        PlayerDTO playerDTO = PlayerDTO.fromPlayer(playerToSend);
-        EnemyDTO enemyDTO = EnemyDTO.fromEnemy(currentEnemy);
+        List<PlayerDTO> playerDTOs = playerFind.findAll().stream()
+                .map(PlayerDTO::fromPlayer)
+                .toList();
 
-        // TODO: 아래 두 메서드를 통합하는 것이 좋은가? 두 메서드의 구조는 완벽하게 일치한다.
+        List<EnemyDTO> enemyDTOs = enemyFind.findAll().stream()
+                .map(EnemyDTO::fromEnemy)
+                .toList();
 
-        // Player 객체가 null이 아닐 때만(Enemy는 null 일 수 있음) 메시지 생성 및 전송
-        if (playerDTO != null) {
-            GameStateUpdateMessage gameStateMessage = new GameStateUpdateMessage(playerDTO, enemyDTO);
-            String messageJson = objectMapper.writeValueAsString(gameStateMessage);
+        GameStateUpdateMessage gameStateUpdateMessage = new GameStateUpdateMessage(playerDTOs, enemyDTOs);
+        String messageJson = objectMapper.writeValueAsString(gameStateUpdateMessage);
+
+        if (session.isOpen()) {
             session.sendMessage(new TextMessage(messageJson));
-            log.debug("[Send] Player gameStateUpdate to {}: {}", session.getId(), messageJson);
-        } else {
-            log.warn("[Warn] Player object is null, cannot send game state update to session: {}", session.getId());
+            log.debug("[Send] Full game state to {}: {}", session.getId(), messageJson);
         }
     }
 
     public void broadcastGameStateUpdate() {
-        Player currentPlayer = gameState.getPlayer();
-        Enemy currentEnemy = gameState.getEnemy();
+        List<PlayerDTO> playerDTOs = playerFind.findAll().stream()
+                .map(PlayerDTO::fromPlayer)
+                .toList();
 
-        PlayerDTO playerDTO = PlayerDTO.fromPlayer(currentPlayer);
-        EnemyDTO enemyDTO = EnemyDTO.fromEnemy(currentEnemy);
+        List<EnemyDTO> enemyDTOs = enemyFind.findAll().stream()
+                .map(EnemyDTO::fromEnemy)
+                .toList();
 
-        if (playerDTO != null) {
-            GameStateUpdateMessage gameStateUpdateMessage = new GameStateUpdateMessage(playerDTO, enemyDTO);
+        GameStateUpdateMessage gameStateUpdateMessage = new GameStateUpdateMessage(playerDTOs, enemyDTOs);
 
-            try {
-                String messageJson = objectMapper.writeValueAsString(gameStateUpdateMessage);
-                log.debug("Broadcasting gameStateUpdate: {}", messageJson);
-                for (WebSocketSession s : sessions.values()) {
-                    if (s.isOpen()) {
+        try {
+            String messageJson = objectMapper.writeValueAsString(gameStateUpdateMessage);
+            log.debug("Broadcasting game state update ({} players, {} enemies)", playerDTOs.size(), enemyDTOs.size());
+
+            for (WebSocketSession s : sessions.values()) {
+                if (s.isOpen()) {
+                    try {
                         s.sendMessage(new TextMessage(messageJson));
+                    } catch (IOException exception) {
+                        log.error("Failed to send message to session {}: {}", s.getId(), exception.getMessage());
+                        sessions.remove(s.getId());
+                        sessionPlayerMap.remove(s.getId());
                     }
+                } else {
+                    sessions.remove(s.getId());
+                    sessionPlayerMap.remove(s.getId());
                 }
-            } catch (IOException exception) {
-                log.error("Error broadcasting game state update", exception);
             }
+        } catch (IOException exception) {
+            log.error("Error broadcasting game state update", exception);
         }
     }
 
@@ -160,7 +183,13 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        PlayerId removedPlayerId = sessionPlayerMap.remove(session.getId());
         sessions.remove(session.getId());
+        if (removedPlayerId != null) {
+            gameService.removePlayer(removedPlayerId);
+            log.debug("Player {} removed due to WebSocket connectiong closed: {} with status {}", removedPlayerId, session.getId(), status);
+            broadcastGameStateUpdate();
+        }
         log.debug("WebSocket connection closed: {} with status {}", session.getId(), status);
     }
 }

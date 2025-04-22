@@ -24,7 +24,7 @@ public class EnemyDTO {
         }
 
         Position pos = enemy.getPosition();
-        return new EnemyDTO(enemy.getId(),
+        return new EnemyDTO(enemy.getId().toString(),
                 pos.x(),
                 pos.y(),
                 enemy.getSize()

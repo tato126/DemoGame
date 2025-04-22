@@ -1,7 +1,6 @@
 package com.example.demo.infrastructure.config;
 
 import com.example.demo.domain.common.Position;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -11,7 +10,7 @@ public class Canvas {
     private final int height;
 
 
-    public Canvas(@Value("${game.canvas.width:400}") int width, @Value("${game.canvas.height:300}") int height) {
+    public Canvas(int width, int height) {
         this.width = width;
         this.height = height;
     }
