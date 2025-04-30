@@ -1,9 +1,9 @@
 package com.example.demo.web.dto;
 
 import com.example.demo.domain.common.Position;
-import com.example.demo.domain.enemy.Enemy;
+import com.example.demo.domain.projectile.Projectile;
 
-public class EnemyDTO {
+public class ProjectileDto {
 
     private String id;
     private int x;
@@ -11,24 +11,21 @@ public class EnemyDTO {
     private int size;
 
 
-    public EnemyDTO(String id, int x, int y, int size) {
+    public ProjectileDto(String id, int x, int y, int size) {
         this.id = id;
         this.x = x;
         this.y = y;
         this.size = size;
     }
 
-    public static EnemyDTO fromEnemy(Enemy enemy) {
-        if (enemy == null) {
+    public static ProjectileDto fromDto(Projectile projectile) {
+        if (projectile == null) {
             return null;
         }
 
-        Position pos = enemy.getPosition();
-        return new EnemyDTO(enemy.getId().toString(),
-                pos.x(),
-                pos.y(),
-                enemy.getSize()
-        );
+        Position pos = projectile.getPosition();
+
+        return new ProjectileDto(projectile.getId().toString(), pos.x(), pos.y(), projectile.getSize());
     }
 
     // Getter
@@ -49,7 +46,6 @@ public class EnemyDTO {
     }
 
     // Setter
-
     public void setId(String id) {
         this.id = id;
     }

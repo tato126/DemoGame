@@ -8,6 +8,8 @@ import com.example.demo.domain.player.application.PlayerCleanUp;
 import com.example.demo.domain.player.application.PlayerFind;
 import com.example.demo.domain.player.application.PlayerRegistry;
 import com.example.demo.domain.support.IdGenerator;
+import com.example.demo.domain.weapon.Pistol.Pistol;
+import com.example.demo.domain.weapon.Weapon;
 import com.example.demo.infrastructure.config.Canvas;
 import com.example.demo.domain.common.Direction;
 import com.example.demo.domain.common.Position;
@@ -37,7 +39,10 @@ public class GameService {
     private final EnemyRegistry enemyRegistry;
     private final EnemyCleanUp enemyCleanUp;
 
-    public GameService(IdGenerator idGenerator, MoveValidationService validationService, Canvas canvas, PlayerFind playerFind, PlayerRegistry playerRegistry, PlayerCleanUp playerCleanUp, EnemyFind enemyFind, EnemyRegistry enemyRegistry, EnemyCleanUp enemyCleanUp) {
+    private final Pistol defaultPistol;
+
+
+    public GameService(IdGenerator idGenerator, MoveValidationService validationService, Canvas canvas, PlayerFind playerFind, PlayerRegistry playerRegistry, PlayerCleanUp playerCleanUp, EnemyFind enemyFind, EnemyRegistry enemyRegistry, EnemyCleanUp enemyCleanUp, Pistol pistol) {
         this.validationService = validationService;
         this.idGenerator = idGenerator;
         this.canvas = canvas;
@@ -47,11 +52,29 @@ public class GameService {
         this.enemyFind = enemyFind;
         this.enemyRegistry = enemyRegistry;
         this.enemyCleanUp = enemyCleanUp;
+        this.defaultPistol = pistol;
     }
 
-    public void processPlayerMove(String playerIdStr, Direction direction) {
+    public Player initializePlayer() {
+        PlayerId newPlayerId = idGenerator.generatePlayerId();
+        log.debug("[Generated] New Player ID: {}", newPlayerId);
+
+        int initialSize = 20;
+        int startX = (canvas.getWidth() / 2) - (initialSize / 2);
+        int startY = (canvas.getHeight() / 2) - (initialSize / 2);
+        Position initialPosition = new Position(startX, startY); // 임시 초기 위치
+
+        Player newPlayer = new Player(newPlayerId, initialPosition, initialSize, defaultPistol);
+        log.debug("총 객체 생성 {}", defaultPistol);
+
+        playerRegistry.addOrUpdate(newPlayer);
+        log.debug("[Service] New Player initialized and registered: {}", newPlayer);
+        return newPlayer;
+    }
+
+    public void playerMove(String playerIdStr, Direction direction) {
         PlayerId playerId = PlayerId.of(playerIdStr);
-        Optional<Player> playerOptional = playerFind.byId(playerId);
+        Optional<Player> playerOptional = playerFind.findById(playerId);
 
         if (playerOptional.isEmpty()) {
             log.warn("[Service] Received move request for non-existent player ID: {}", playerIdStr);
@@ -77,22 +100,22 @@ public class GameService {
         // 플레이어 이동 후 broadcast는 WebSocketHandler에서 호출됨
     }
 
-    public Player initializeOrGetPlayer() {
-        PlayerId newPlayerId = idGenerator.generatePlayerId();
-        log.debug("[Generated] New Player ID: {}", newPlayerId);
 
-        int initialSize = 20;
-        int startX = (canvas.getWidth() / 2) - (initialSize / 2);
-        int startY = (canvas.getHeight() / 2) - (initialSize / 2);
-        Position initialPosition = new Position(startX, startY); // 임시 초기 위치
+    public void playerFire(String playerIdStr, Direction targetDirection) {
+        log.debug("플레이어가 발사합니다.");
+        PlayerId playerId = PlayerId.of(playerIdStr);
+        Optional<Player> playerOptional = playerFind.findById(playerId);
 
-        Player newPlayer = new Player(newPlayerId, initialPosition, initialSize);
+        if (playerOptional.isEmpty()) {
+            log.debug("[Service] Received fire request for non-existent player ID: {}", playerIdStr);
+            return;
+        }
 
-
-        playerRegistry.addOrUpdate(newPlayer);
-        log.debug("[Service] New Player initialized and registered: {}", newPlayer);
-        return newPlayer;
+        Player currentPlayer = playerOptional.get();
+        currentPlayer.fire(targetDirection);
+        log.debug("[Service] Player {} fired towards {}", playerId, targetDirection);
     }
+
     public Enemy spawnInitialEnemy() {
         if (enemyFind.findAll().isEmpty()) {
             EnemyId newEnemyId = idGenerator.generateEnemyId();

@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface PlayerFind {
 
-    Optional<Player> byId(PlayerId playerId);
+    Optional<Player> findById(PlayerId playerId);
 
     Collection<Player> findAll();
 

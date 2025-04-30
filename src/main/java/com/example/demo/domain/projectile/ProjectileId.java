@@ -1,25 +1,25 @@
-package com.example.demo.domain.enemy;
+package com.example.demo.domain.projectile;
 
 import java.util.Objects;
 
-public class EnemyId {
+public class ProjectileId {
 
     private String value;
 
-    public EnemyId(String value) {
-        if (value == null || value.isBlank()) {
-            throw new RuntimeException("[Exception] EnemyId must not be null or blank.");
+    public ProjectileId(String value) {
+        if (value == null || value.isEmpty()) {
+            throw new RuntimeException("[Exception] ProjectileId must be not null or Blank.");
         }
         this.value = value;
     }
 
     // for hibernate
     @SuppressWarnings("unused")
-    public EnemyId() {
+    public ProjectileId() {
     }
 
-    public static EnemyId of(String value) {
-        return new EnemyId(value);
+    public static ProjectileId of(String value) {
+        return new ProjectileId(value);
     }
 
     @Override
@@ -28,7 +28,7 @@ public class EnemyId {
 
         if (obj == null || getClass() != obj.getClass()) return false;
 
-        return Objects.equals(value, ((EnemyId) obj).value);
+        return Objects.equals(value, ((ProjectileId) obj).value);
     }
 
     @Override

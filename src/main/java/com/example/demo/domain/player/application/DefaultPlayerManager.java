@@ -26,7 +26,7 @@ public class DefaultPlayerManager implements PlayerRegistry, PlayerFind, PlayerC
     }
 
     @Override
-    public Optional<Player> byId(PlayerId playerId) {
+    public Optional<Player> findById(PlayerId playerId) {
         Objects.requireNonNull(playerId, "Player ID cannot be null for findById");
         return Optional.ofNullable(players.get(playerId));
     }

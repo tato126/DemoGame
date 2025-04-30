@@ -1,10 +1,17 @@
 package com.example.demo.application;
 
+import com.example.demo.application.physics.CollisionService;
+import com.example.demo.application.physics.MoveValidationService;
 import com.example.demo.domain.common.Direction;
 import com.example.demo.domain.common.Position;
 import com.example.demo.domain.enemy.Enemy;
 import com.example.demo.domain.enemy.application.EnemyFind;
 import com.example.demo.domain.enemy.application.EnemyRegistry;
+import com.example.demo.domain.projectile.Projectile;
+import com.example.demo.domain.projectile.application.ProjectileCleanUp;
+import com.example.demo.domain.projectile.application.ProjectileFind;
+import com.example.demo.domain.projectile.application.ProjectileRegistry;
+import com.example.demo.infrastructure.config.Canvas;
 import com.example.demo.web.websocket.WebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,19 +26,30 @@ public class GameLoopService {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final WebSocketHandler webSocketHandler;
+    private final CollisionService collisionService;
+    private final Canvas canvas;
 
     private final EnemyFind enemyFind;
     private final EnemyRegistry enemyRegistry;
+
+    private final ProjectileFind projectileFind;
+    private final ProjectileCleanUp projectileCleanUp;
+    private final ProjectileRegistry projectileRegistry;
 
     private static final int ENEMY_MIN_X = 50;      // 순찰 최소 x 좌표
     private static final int ENEMY_MAX_X = 330;     // 순찰 최대 x 좌표
     private static final int ENEMY_MOVE_STEP = 5;   // 업데이트 당 이동 거리
     private static final long UPDATE_RATE_MS = 100; // 업데이트 주기 (0.1초)
 
-    public GameLoopService(WebSocketHandler webSocketHandler, EnemyFind enemyFind, EnemyRegistry enemyRegistry) {
+    public GameLoopService(WebSocketHandler webSocketHandler, CollisionService collisionService, Canvas canvas, EnemyFind enemyFind, EnemyRegistry enemyRegistry, ProjectileFind projectileFind, ProjectileCleanUp projectileCleanUp, ProjectileRegistry projectileRegistry) {
+        this.collisionService = collisionService;
+        this.canvas = canvas;
         this.enemyFind = enemyFind;
         this.enemyRegistry = enemyRegistry;
         this.webSocketHandler = webSocketHandler;
+        this.projectileFind = projectileFind;
+        this.projectileCleanUp = projectileCleanUp;
+        this.projectileRegistry = projectileRegistry;
     }
 
     @Scheduled(fixedRate = UPDATE_RATE_MS)
@@ -73,10 +91,10 @@ public class GameLoopService {
             }
             Enemy movedEnemyState = new Enemy(currentEnemy.getId(), nextPosition, currentEnemy.getSize(), nextDirection);
 
-            // 상태 변경시 GameState 업데이트 및 BroadCast
+
             if (!currentEnemy.getPosition().equals(movedEnemyState.getPosition()) || !currentEnemy.getDirection().equals(movedEnemyState.getDirection())) {
                 enemyRegistry.addOrUpdate(movedEnemyState);
-                log.debug("[Update] Enemy {} updated state: {}", movedEnemyState.getId(), movedEnemyState);
+                log.trace("[Update] Enemy {} updated state: {}", movedEnemyState.getId(), movedEnemyState);
                 stateChanged = true;
             }
         }
@@ -84,6 +102,44 @@ public class GameLoopService {
         if (stateChanged) {
             webSocketHandler.broadcastGameStateUpdate();
             log.debug("[GameLoop] Enemy movement caused state change, broadcasting update");
+        }
+    }
+
+    @Scheduled(fixedRate = 30)
+    public void updateProjectileMovement() {
+
+        log.debug("projectile projectile");
+        Collection<Projectile> currentProjectiles = projectileFind.findAll();
+
+        if (currentProjectiles.isEmpty()) {
+            log.debug("[Empty]Projectile List is Empty!");
+            return;
+        }
+
+        boolean stateChange = false;
+
+        for (Projectile currentProjectile : currentProjectiles) {
+            Projectile movedProjectile = currentProjectile.move();
+            Position nextPosition = movedProjectile.getPosition();
+
+            if (!canvas.isWithinBounds(nextPosition, movedProjectile.getSize())) {
+                projectileCleanUp.remove(currentProjectile.getId());
+                log.debug("[GameLoop] WithInBounds Error pos:{}", currentProjectile.getId());
+                stateChange = true;
+                continue;
+            }
+
+            if (!currentProjectile.getPosition().equals(movedProjectile.getPosition())) {
+                projectileRegistry.addOrUpdate(movedProjectile);
+                log.trace("[Projectile] Moved projectile: {}", movedProjectile.getId());
+                stateChange = true;
+            }
+        }
+
+        if (stateChange) {
+            webSocketHandler.broadcastGameStateUpdate();
+            log.debug("[GameLoop] 빵야빵야");
+            log.debug("[GameLoop] Projectile movement caused state change, broadcasting update");
         }
     }
 }

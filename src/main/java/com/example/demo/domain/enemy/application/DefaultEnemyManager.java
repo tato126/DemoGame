@@ -18,8 +18,8 @@ public class DefaultEnemyManager implements EnemyRegistry, EnemyFind, EnemyClean
 
     @Override
     public void addOrUpdate(Enemy enemy) {
-        Objects.requireNonNull(enemy, "Enemy cannot be null for addOrUpdate");
-        Objects.requireNonNull(enemy.getId(), "Enemy Id cannot be null for addOrUpdate");
+        Objects.requireNonNull(enemy, "Enemy cannot be null for addOrUpdate.");
+        Objects.requireNonNull(enemy.getId(), "Enemy Id cannot be null for addOrUpdate.");
 
         enemies.put(enemy.getId(), enemy);
         log.debug("[EnemyManager] Enemy added or updated: {}", enemy.getId());
@@ -27,7 +27,7 @@ public class DefaultEnemyManager implements EnemyRegistry, EnemyFind, EnemyClean
 
     @Override
     public Optional<Enemy> findById(EnemyId enemyId) {
-        Objects.requireNonNull(enemyId, "Enemy ID cannot be null for findById");
+        Objects.requireNonNull(enemyId, "Enemy ID cannot be null for findById.");
         return Optional.ofNullable(enemies.get(enemyId));
     }
 
@@ -38,7 +38,7 @@ public class DefaultEnemyManager implements EnemyRegistry, EnemyFind, EnemyClean
 
     @Override
     public void remove(EnemyId enemyId) {
-        Objects.requireNonNull(enemyId, "Enemy ID cannot be null for remove");
+        Objects.requireNonNull(enemyId, "Enemy ID cannot be null for remove.");
         Enemy removedEnemy = enemies.remove(enemyId);
         if (removedEnemy != null) {
             log.debug("[EnemyManager] Enemy removed: {}", enemyId);

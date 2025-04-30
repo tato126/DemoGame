@@ -13,8 +13,8 @@ public class Enemy {
     private final Direction direction;
 
     public Enemy(EnemyId id, Position position, int size, Direction direction) {
-        this.id = Objects.requireNonNull(id, "[Enemy] Id must be not null");
-        this.position = Objects.requireNonNull(position, "[Enemy] Position must be not null");
+        this.id = Objects.requireNonNull(id, "[Enemy] Id must not be null.");
+        this.position = Objects.requireNonNull(position, "[Enemy] Position must not be null.");
         this.size = size;
         this.direction = direction;
     }

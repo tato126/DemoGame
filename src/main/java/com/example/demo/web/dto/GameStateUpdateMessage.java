@@ -1,21 +1,21 @@
 package com.example.demo.web.dto;
 
-import com.example.demo.domain.player.Player;
-
 import java.util.List;
 
 public class GameStateUpdateMessage {
 
     private String type = "gameStateUpdate"; // 타입 고정
-    private List<PlayerDTO> players;
-    private List<EnemyDTO> enemies;
+    private List<PlayerDto> players;
+    private List<EnemyDto> enemies;
+    private List<ProjectileDto> projectiles;
 
     public GameStateUpdateMessage() {
     }
 
-    public GameStateUpdateMessage(List<PlayerDTO> players, List<EnemyDTO> enemies) {
+    public GameStateUpdateMessage(List<PlayerDto> players, List<EnemyDto> enemies, List<ProjectileDto> projectiles) {
         this.players = players;
         this.enemies = enemies;
+        this.projectiles = projectiles;
     }
 
 
@@ -24,12 +24,16 @@ public class GameStateUpdateMessage {
         return type;
     }
 
-    public List<PlayerDTO> getPlayers() {
+    public List<PlayerDto> getPlayers() {
         return players;
     }
 
-    public List<EnemyDTO> getEnemies() {
+    public List<EnemyDto> getEnemies() {
         return enemies;
+    }
+
+    public List<ProjectileDto> getProjectiles() {
+        return projectiles;
     }
 
     // Setter
@@ -37,11 +41,15 @@ public class GameStateUpdateMessage {
         this.type = type;
     }
 
-    public void setPlayers(List<PlayerDTO> players) {
+    public void setPlayers(List<PlayerDto> players) {
         this.players = players;
     }
 
-    public void setEnemies(List<EnemyDTO> enemies) {
+    public void setEnemies(List<EnemyDto> enemies) {
         this.enemies = enemies;
+    }
+
+    public void setProjectiles(List<ProjectileDto> projectiles) {
+        this.projectiles = projectiles;
     }
 }

@@ -2,15 +2,12 @@ package com.example.demo.web.websocket;
 
 import com.example.demo.application.GameService;
 import com.example.demo.domain.common.Direction;
-import com.example.demo.domain.enemy.Enemy;
 import com.example.demo.domain.enemy.application.EnemyFind;
 import com.example.demo.domain.player.Player;
 import com.example.demo.domain.player.PlayerId;
 import com.example.demo.domain.player.application.PlayerFind;
-import com.example.demo.web.dto.EnemyDTO;
-import com.example.demo.web.dto.GameStateUpdateMessage;
-import com.example.demo.web.dto.MoveMessage;
-import com.example.demo.web.dto.PlayerDTO;
+import com.example.demo.domain.projectile.application.ProjectileFind;
+import com.example.demo.web.dto.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,8 +21,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 @Component
 public class WebSocketHandler extends TextWebSocketHandler {
@@ -36,15 +31,17 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     private final PlayerFind playerFind;
     private final EnemyFind enemyFind;
+    private final ProjectileFind projectileFind;
 
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final Map<String, PlayerId> sessionPlayerMap = new ConcurrentHashMap<>();
 
-    public WebSocketHandler(ObjectMapper objectMapper, GameService gameService, PlayerFind playerFind, EnemyFind enemyFind) {
+    public WebSocketHandler(ObjectMapper objectMapper, GameService gameService, PlayerFind playerFind, EnemyFind enemyFind, ProjectileFind projectileFind) {
         this.objectMapper = objectMapper;
         this.gameService = gameService;
         this.playerFind = playerFind;
         this.enemyFind = enemyFind;
+        this.projectileFind = projectileFind;
     }
 
     @Override
@@ -54,7 +51,8 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
         gameService.resetGame();
 
-        Player newPlayer = gameService.initializeOrGetPlayer();
+        Player newPlayer = gameService.initializePlayer();
+
         sessionPlayerMap.put(session.getId(), newPlayer.getId());
 
         gameService.spawnInitialEnemy();
@@ -70,16 +68,19 @@ public class WebSocketHandler extends TextWebSocketHandler {
         log.debug("Received message from {}: {}", session.getId(), payload);
 
         try {
-            MoveMessage moveMessage = objectMapper.readValue(payload, MoveMessage.class);
-            String type = moveMessage.getType();
+            Map<String, String> baseMessage = objectMapper.readValue(payload, Map.class);
+            String type = baseMessage.get("type");
 
-            if ("move".equals(type)) {
+            if ("move".equals(type)) { // 해당 메서드에서 type = move라고 변환하는 부분은 어디있는가?
+                MoveMessage moveMessage = objectMapper.readValue(payload, MoveMessage.class);
                 String playerId = moveMessage.getPlayerId(); // 클라이언트가 자신의 ID를 보낼도록 함
                 String directionStr = moveMessage.getDirection();
 
+                log.debug("[HandleTextMessage] - 테스트 - 유효한 키 동작 요청을 받았음");
+
                 if (playerId == null || directionStr == null) {
-                    log.warn("Invalid move message received (missing fields): {}", payload);
-                    sendErrorMessage(session, "Move message requires 'playerId' and 'direction'.");
+                    log.warn("[WARN] Invalid move message received (missing fields): {}", payload);
+                    sendErrorMessage(session, "Move message requires 'PlayerId' and 'Direction'.");
                     return;
                 }
 
@@ -94,19 +95,47 @@ public class WebSocketHandler extends TextWebSocketHandler {
                 }
 
                 // GameService 호출하여 이동 처리
-                // TODO: session과 playerId를 매핑하여 권한 검증 로직 추가 고려
-                gameService.processPlayerMove(playerId, direction);
+                gameService.playerMove(playerId, direction);
 
                 // 변경된 게임 상태를 모든 클라이언트에게 브로드캐스트
                 broadcastGameStateUpdate();
 
+            } else if ("shot".equals(type)) {
+
+                // 발사
+                ShotMessage shotMessage = objectMapper.readValue(payload, ShotMessage.class);
+                PlayerId firingPlayerId = sessionPlayerMap.get(session.getId());
+                String directionStr = shotMessage.getDirection();
+
+                log.debug("[HandleTextMessage] - 테스트 - 유효한 발사키 입력 ID: {} , Direction : {}", firingPlayerId, directionStr);
+
+                if (firingPlayerId == null || directionStr == null) {
+                    log.warn("[WARN] Invalid shot message received (missing fields): {}", payload);
+                    sendErrorMessage(session, "Shot message required 'ProjectileId' and 'directionStrection'");
+                    return;
+                }
+
+                Direction direction;
+
+                try {
+                    direction = Direction.valueOf(directionStr.toUpperCase());
+                } catch (IllegalArgumentException exception) {
+                    log.warn("[WARN] Invalid direction value received: {}", directionStr);
+                    sendErrorMessage(session, "Invalid direction value received");
+                    return;
+                }
+
+                // GameService에 실행요청
+                gameService.playerFire(firingPlayerId.toString(), direction);
+
+                broadcastGameStateUpdate();
             } else {
                 log.debug("Unknown message type received: {}", type);
                 sendErrorMessage(session, "Unknown message type: " + type);
             }
         } catch (IOException exception) {
-            log.error("Error handling message: {}", payload, exception);
-            sendErrorMessage(session, "Error processing message: " + exception.getMessage());
+            log.debug("Error processing message: {}", payload, exception);
+            sendErrorMessage(session, "Invalid message format or processing message: " + exception.getMessage());
         } catch (Exception exception) {
             log.error("Unexpected error handling message: {}", payload, exception);
             sendErrorMessage(session, "An unexpected error occurred.");
@@ -115,15 +144,19 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     private void sendFullGameState(WebSocketSession session) throws IOException {
 
-        List<PlayerDTO> playerDTOs = playerFind.findAll().stream()
-                .map(PlayerDTO::fromPlayer)
+        List<PlayerDto> playerDTOs = playerFind.findAll().stream()
+                .map(PlayerDto::fromPlayer)
                 .toList();
 
-        List<EnemyDTO> enemyDTOs = enemyFind.findAll().stream()
-                .map(EnemyDTO::fromEnemy)
+        List<EnemyDto> enemyDTOs = enemyFind.findAll().stream()
+                .map(EnemyDto::fromEnemy)
                 .toList();
 
-        GameStateUpdateMessage gameStateUpdateMessage = new GameStateUpdateMessage(playerDTOs, enemyDTOs);
+        List<ProjectileDto> projectileDTOs = projectileFind.findAll().stream()
+                .map(ProjectileDto::fromDto)
+                .toList();
+
+        GameStateUpdateMessage gameStateUpdateMessage = new GameStateUpdateMessage(playerDTOs, enemyDTOs, projectileDTOs);
         String messageJson = objectMapper.writeValueAsString(gameStateUpdateMessage);
 
         if (session.isOpen()) {
@@ -133,19 +166,23 @@ public class WebSocketHandler extends TextWebSocketHandler {
     }
 
     public void broadcastGameStateUpdate() {
-        List<PlayerDTO> playerDTOs = playerFind.findAll().stream()
-                .map(PlayerDTO::fromPlayer)
+        List<PlayerDto> playerDTOs = playerFind.findAll().stream()
+                .map(PlayerDto::fromPlayer)
                 .toList();
 
-        List<EnemyDTO> enemyDTOs = enemyFind.findAll().stream()
-                .map(EnemyDTO::fromEnemy)
+        List<EnemyDto> enemyDTOs = enemyFind.findAll().stream()
+                .map(EnemyDto::fromEnemy)
                 .toList();
 
-        GameStateUpdateMessage gameStateUpdateMessage = new GameStateUpdateMessage(playerDTOs, enemyDTOs);
+        List<ProjectileDto> projectileDTOs = projectileFind.findAll().stream()
+                .map(ProjectileDto::fromDto)
+                .toList();
+
+        GameStateUpdateMessage gameStateUpdateMessage = new GameStateUpdateMessage(playerDTOs, enemyDTOs, projectileDTOs);
 
         try {
             String messageJson = objectMapper.writeValueAsString(gameStateUpdateMessage);
-            log.debug("Broadcasting game state update ({} players, {} enemies)", playerDTOs.size(), enemyDTOs.size());
+            log.debug("Broadcasting game state update ({} players, {} enemies, {} projectiles)", playerDTOs.size(), enemyDTOs.size(), projectileDTOs.size());
 
             for (WebSocketSession s : sessions.values()) {
                 if (s.isOpen()) {
@@ -187,7 +224,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         sessions.remove(session.getId());
         if (removedPlayerId != null) {
             gameService.removePlayer(removedPlayerId);
-            log.debug("Player {} removed due to WebSocket connectiong closed: {} with status {}", removedPlayerId, session.getId(), status);
+            log.debug("Player {} removed due to WebSocket connection closed: {} with status {}", removedPlayerId, session.getId(), status);
             broadcastGameStateUpdate();
         }
         log.debug("WebSocket connection closed: {} with status {}", session.getId(), status);
