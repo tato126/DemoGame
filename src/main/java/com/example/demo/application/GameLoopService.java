@@ -5,6 +5,7 @@ import com.example.demo.application.physics.MoveValidationService;
 import com.example.demo.domain.common.Direction;
 import com.example.demo.domain.common.Position;
 import com.example.demo.domain.enemy.Enemy;
+import com.example.demo.domain.enemy.application.EnemyCleanUp;
 import com.example.demo.domain.enemy.application.EnemyFind;
 import com.example.demo.domain.enemy.application.EnemyRegistry;
 import com.example.demo.domain.projectile.Projectile;
@@ -31,6 +32,7 @@ public class GameLoopService {
 
     private final EnemyFind enemyFind;
     private final EnemyRegistry enemyRegistry;
+    private final EnemyCleanUp enemyCleanUp;
 
     private final ProjectileFind projectileFind;
     private final ProjectileCleanUp projectileCleanUp;
@@ -41,12 +43,13 @@ public class GameLoopService {
     private static final int ENEMY_MOVE_STEP = 5;   // 업데이트 당 이동 거리
     private static final long UPDATE_RATE_MS = 100; // 업데이트 주기 (0.1초)
 
-    public GameLoopService(WebSocketHandler webSocketHandler, CollisionService collisionService, Canvas canvas, EnemyFind enemyFind, EnemyRegistry enemyRegistry, ProjectileFind projectileFind, ProjectileCleanUp projectileCleanUp, ProjectileRegistry projectileRegistry) {
+    public GameLoopService(WebSocketHandler webSocketHandler, CollisionService collisionService, Canvas canvas, EnemyFind enemyFind, EnemyRegistry enemyRegistry, EnemyCleanUp enemyCleanUp, ProjectileFind projectileFind, ProjectileCleanUp projectileCleanUp, ProjectileRegistry projectileRegistry) {
         this.collisionService = collisionService;
         this.canvas = canvas;
         this.enemyFind = enemyFind;
         this.enemyRegistry = enemyRegistry;
         this.webSocketHandler = webSocketHandler;
+        this.enemyCleanUp = enemyCleanUp;
         this.projectileFind = projectileFind;
         this.projectileCleanUp = projectileCleanUp;
         this.projectileRegistry = projectileRegistry;
@@ -108,8 +111,13 @@ public class GameLoopService {
     @Scheduled(fixedRate = 30)
     public void updateProjectileMovement() {
 
-        log.debug("projectile projectile");
         Collection<Projectile> currentProjectiles = projectileFind.findAll();
+
+        if (currentProjectiles.isEmpty()) {
+            return;
+        }
+
+        Collection<Enemy> currentEnemies = enemyFind.findAll();
 
         if (currentProjectiles.isEmpty()) {
             log.debug("[Empty]Projectile List is Empty!");
@@ -126,6 +134,26 @@ public class GameLoopService {
                 projectileCleanUp.remove(currentProjectile.getId());
                 log.debug("[GameLoop] WithInBounds Error pos:{}", currentProjectile.getId());
                 stateChange = true;
+                continue;
+            }
+
+            boolean hitEnemy = false;
+
+            for (Enemy currentEnemy : currentEnemies) {
+
+                if (collisionService.checkProjectileEnemyCollision(movedProjectile, currentEnemy)) {
+                    log.debug("[Projectile Collision] Projectile {} hit Enemy {}", movedProjectile.getId(), currentEnemy.getId());
+
+                    projectileCleanUp.remove(movedProjectile.getId());
+                    enemyCleanUp.remove(currentEnemy.getId());
+
+                    stateChange = true;
+                    hitEnemy = true;
+                    break;
+                }
+            }
+
+            if (hitEnemy) {
                 continue;
             }
 

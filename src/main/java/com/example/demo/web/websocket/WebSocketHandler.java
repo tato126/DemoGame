@@ -71,7 +71,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
             Map<String, String> baseMessage = objectMapper.readValue(payload, Map.class);
             String type = baseMessage.get("type");
 
-            if ("move".equals(type)) { // 해당 메서드에서 type = move라고 변환하는 부분은 어디있는가?
+            if ("move".equals(type)) {
                 MoveMessage moveMessage = objectMapper.readValue(payload, MoveMessage.class);
                 String playerId = moveMessage.getPlayerId(); // 클라이언트가 자신의 ID를 보낼도록 함
                 String directionStr = moveMessage.getDirection();
