@@ -5,9 +5,15 @@ import com.example.demo.application.physics.MoveValidationService;
 import com.example.demo.domain.common.Direction;
 import com.example.demo.domain.common.Position;
 import com.example.demo.domain.enemy.Enemy;
+import com.example.demo.domain.enemy.EnemyId;
 import com.example.demo.domain.enemy.application.EnemyCleanUp;
 import com.example.demo.domain.enemy.application.EnemyFind;
 import com.example.demo.domain.enemy.application.EnemyRegistry;
+import com.example.demo.domain.player.Player;
+import com.example.demo.domain.player.PlayerId;
+import com.example.demo.domain.player.application.PlayerCleanUp;
+import com.example.demo.domain.player.application.PlayerFind;
+import com.example.demo.domain.player.application.PlayerRegistry;
 import com.example.demo.domain.projectile.Projectile;
 import com.example.demo.domain.projectile.application.ProjectileCleanUp;
 import com.example.demo.domain.projectile.application.ProjectileFind;
@@ -30,6 +36,9 @@ public class GameLoopService {
     private final CollisionService collisionService;
     private final Canvas canvas;
 
+    private final PlayerFind playerFind;
+    private final PlayerCleanUp playerCleanUp;
+
     private final EnemyFind enemyFind;
     private final EnemyRegistry enemyRegistry;
     private final EnemyCleanUp enemyCleanUp;
@@ -43,9 +52,11 @@ public class GameLoopService {
     private static final int ENEMY_MOVE_STEP = 5;   // 업데이트 당 이동 거리
     private static final long UPDATE_RATE_MS = 100; // 업데이트 주기 (0.1초)
 
-    public GameLoopService(WebSocketHandler webSocketHandler, CollisionService collisionService, Canvas canvas, EnemyFind enemyFind, EnemyRegistry enemyRegistry, EnemyCleanUp enemyCleanUp, ProjectileFind projectileFind, ProjectileCleanUp projectileCleanUp, ProjectileRegistry projectileRegistry) {
+    public GameLoopService(WebSocketHandler webSocketHandler, CollisionService collisionService, Canvas canvas, PlayerFind playerFind, PlayerCleanUp playerCleanUp, EnemyFind enemyFind, EnemyRegistry enemyRegistry, EnemyCleanUp enemyCleanUp, ProjectileFind projectileFind, ProjectileCleanUp projectileCleanUp, ProjectileRegistry projectileRegistry) {
         this.collisionService = collisionService;
         this.canvas = canvas;
+        this.playerFind = playerFind;
+        this.playerCleanUp = playerCleanUp;
         this.enemyFind = enemyFind;
         this.enemyRegistry = enemyRegistry;
         this.webSocketHandler = webSocketHandler;
@@ -55,10 +66,14 @@ public class GameLoopService {
         this.projectileRegistry = projectileRegistry;
     }
 
+    private long enemyFireCounter = 0; // 발사 간격 카운터
+    private final Long ENEMY_FIRE_INTERVAL_TICKS = 10L; // 예시: 10틱마다 발사 (1초 간격 100ms/틱)
+
     @Scheduled(fixedRate = UPDATE_RATE_MS)
-    public void updateEnemyMovement() {
+    public void updateEnemy() {
 
         Collection<Enemy> currentEnemies = enemyFind.findAll();
+        Player player = playerFind.findAll().stream().findFirst().orElse(null);
 
         if (currentEnemies == null) {
             return;
@@ -72,6 +87,9 @@ public class GameLoopService {
             Position nextPosition;
             Direction nextDirection = currentDirection;
 
+
+            log.debug("[GameLoop] currentEnemy dir : {}", currentEnemy.getDirection());
+
             // 1. 다음 위치 계산
             if (currentDirection == Direction.LEFT) {
                 nextPosition = currentPosition.move(-ENEMY_MOVE_STEP, 0);
@@ -83,22 +101,37 @@ public class GameLoopService {
             if (nextPosition.x() <= ENEMY_MIN_X) {
                 nextPosition = new Position(ENEMY_MIN_X, currentPosition.y());
                 nextDirection = Direction.RIGHT;
-                log.debug("[Position Change] Enemy hit minX boundary, change direction to RIGHT");
+                log.debug("[GameLoop] Enemy hit minX boundary, change direction to RIGHT");
             } else if (nextPosition.x() + currentEnemy.getSize() >= ENEMY_MAX_X + currentEnemy.getSize()) {
 
                 if (nextPosition.x() >= ENEMY_MAX_X) {
                     nextPosition = new Position(ENEMY_MAX_X, currentPosition.y());
                     nextDirection = Direction.LEFT;
-                    log.debug("[Position Change] Enemy hit maxX boundary, change direction to LEFT");
+                    log.debug("[GameLoop] Enemy hit maxX boundary, change direction to LEFT");
                 }
             }
-            Enemy movedEnemyState = new Enemy(currentEnemy.getId(), nextPosition, currentEnemy.getSize(), nextDirection);
-
+            Enemy movedEnemyState = new Enemy(currentEnemy.getId(), nextPosition, currentEnemy.getSize(), nextDirection, currentEnemy.getDefaultWeapon());
 
             if (!currentEnemy.getPosition().equals(movedEnemyState.getPosition()) || !currentEnemy.getDirection().equals(movedEnemyState.getDirection())) {
                 enemyRegistry.addOrUpdate(movedEnemyState);
-                log.trace("[Update] Enemy {} updated state: {}", movedEnemyState.getId(), movedEnemyState);
+                log.trace("[GameLoop] Enemy {} updated state: {}", movedEnemyState.getId(), movedEnemyState);
                 stateChanged = true;
+            }
+
+            enemyFireCounter++;
+            if (enemyFireCounter >= ENEMY_FIRE_INTERVAL_TICKS) {
+                Direction fireDirection = Direction.DOWN; // 임시
+
+                if (player != null) {
+                    // TODO: player.getPosition()과 currentEnemy.getPosition()으로 방향 계산 로직 추가 필요. (Vector 계산?)
+                    movedEnemyState.fire(fireDirection);
+                    log.debug("[GameLoop] Enemy {} fired towards {}", currentEnemy.getId(), fireDirection);
+                    stateChanged = true;
+                }
+            }
+
+            if (enemyFireCounter >= ENEMY_FIRE_INTERVAL_TICKS) {
+                enemyFireCounter = 0;
             }
         }
 
@@ -119,12 +152,18 @@ public class GameLoopService {
 
         Collection<Enemy> currentEnemies = enemyFind.findAll();
 
-        if (currentProjectiles.isEmpty()) {
-            log.debug("[Empty]Projectile List is Empty!");
+        if (currentEnemies.isEmpty()) {
+            log.debug("[GameLoop] currentEnemies list is null");
+            return;
+        }
+        Collection<Player> currentPlayers = playerFind.findAll();
+
+        if (currentPlayers.isEmpty()) {
+            log.debug("[GameLoop] currentPlayers list is null");
             return;
         }
 
-        boolean stateChange = false;
+        boolean stateChanged = false;
 
         for (Projectile currentProjectile : currentProjectiles) {
             Projectile movedProjectile = currentProjectile.move();
@@ -133,41 +172,58 @@ public class GameLoopService {
             if (!canvas.isWithinBounds(nextPosition, movedProjectile.getSize())) {
                 projectileCleanUp.remove(currentProjectile.getId());
                 log.debug("[GameLoop] WithInBounds Error pos:{}", currentProjectile.getId());
-                stateChange = true;
+                stateChanged = true;
                 continue;
             }
 
-            boolean hitEnemy = false;
+            Object ownerId = currentProjectile.getOwnerId();
+            boolean hitSomething = false;
 
-            for (Enemy currentEnemy : currentEnemies) {
+            // 무기의 사용자를 통해 발사한 발사체가 어떤 대상을 피격했는지 판단.
+            if (ownerId instanceof PlayerId) {
 
-                if (collisionService.checkProjectileEnemyCollision(movedProjectile, currentEnemy)) {
-                    log.debug("[Projectile Collision] Projectile {} hit Enemy {}", movedProjectile.getId(), currentEnemy.getId());
+                for (Enemy enemy : currentEnemies) {
+                    if (collisionService.checkProjectileEnemyCollision(movedProjectile, enemy)) {
+                        log.debug("[GameLoop] Player Projectile {} hit Enemy {}", movedProjectile.getId(), enemy.getId());
+                        projectileCleanUp.remove(currentProjectile.getId());
+                        enemyCleanUp.remove(enemy.getId());
 
-                    projectileCleanUp.remove(movedProjectile.getId());
-                    enemyCleanUp.remove(currentEnemy.getId());
+                        stateChanged = true;
+                        hitSomething = true;
+                        break;
+                    }
+                }
+            } else if (ownerId instanceof EnemyId) {
 
-                    stateChange = true;
-                    hitEnemy = true;
-                    break;
+                for (Player player : currentPlayers) {
+
+                    if (collisionService.checkProjectilePlayerCollision(movedProjectile, player)) {
+                        log.debug("[GameLoop] Enemy projectile {} hit player {}", movedProjectile.getId(), player.getId());
+                        projectileCleanUp.remove(movedProjectile.getId());
+                        playerCleanUp.remove(player.getId());
+                        log.debug("[GameLoop] Removed playerId: {}", player.getId());
+                        stateChanged = true;
+                        hitSomething = true;
+                        break;
+                    }
                 }
             }
 
-            if (hitEnemy) {
+            if (hitSomething) {
                 continue;
             }
 
             if (!currentProjectile.getPosition().equals(movedProjectile.getPosition())) {
                 projectileRegistry.addOrUpdate(movedProjectile);
-                log.trace("[Projectile] Moved projectile: {}", movedProjectile.getId());
-                stateChange = true;
+                log.trace("[GameLoop] Moved player projectile: {}", movedProjectile.getId());
+                stateChanged = true;
             }
         }
 
-        if (stateChange) {
+        if (stateChanged) {
             webSocketHandler.broadcastGameStateUpdate();
-            log.debug("[GameLoop] 빵야빵야");
-            log.debug("[GameLoop] Projectile movement caused state change, broadcasting update");
+            log.debug("[GameLoop] 적에게 빵야빵야");
+            log.debug("[GameLoop] Player projectile movement caused state change, broadcasting update");
         }
     }
 }

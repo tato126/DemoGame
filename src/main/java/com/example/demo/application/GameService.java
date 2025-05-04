@@ -126,7 +126,7 @@ public class GameService {
             int startX = (canvas.getWidth() / 2) - (initialSize / 2);
             Position initialPosition = new Position(startX, initialY);
 
-            Enemy newEnemy = new Enemy(newEnemyId, initialPosition, initialSize);
+            Enemy newEnemy = new Enemy(newEnemyId, initialPosition, initialSize, Direction.RIGHT, defaultPistol);
             enemyRegistry.addOrUpdate(newEnemy);
             log.info("[Service] Initial enemy spawned and registered: {}", newEnemyId);
             return newEnemy;
@@ -137,6 +137,22 @@ public class GameService {
             return enemyFind.findAll().stream().findFirst().orElse(null);
         }
     }
+
+    // Not used now
+//    public void enemyFire(String enemyIdStr, Direction targetDirection) {
+//        log.debug("적이 발사합니다.");
+//        EnemyId enemyId = EnemyId.of(enemyIdStr);
+//        Optional<Enemy> enemyOptional = enemyFind.findById(enemyId);
+//
+//        if (enemyOptional.isEmpty()) {
+//            log.debug("[Service] Error: Received fire request for non-existent Enemy ID: {}", enemyIdStr);
+//            return;
+//        }
+//
+//        Enemy currentEnemy = enemyOptional.get();
+//        currentEnemy.fire(targetDirection);
+//        log.debug("[Service] Enemy {} fired towards {}", enemyId, targetDirection);
+//    }
 
     public void removePlayer(PlayerId playerId) {
         playerCleanUp.remove(playerId);

@@ -81,4 +81,38 @@ public class CollisionService {
         log.debug("[Collision Service] check Projectile & Enemy collisionX : {}, collisionY: {}", collisionX, collisionY);
         return collisionX && collisionY;
     }
+
+    // Projectile & Player Collision
+    public boolean checkProjectilePlayerCollision(Projectile projectile, Player player) {
+
+        if (projectile == null || player == null) {
+            return false;
+        }
+
+        // 위치/크기 검사
+        Position projectilePos = projectile.getPosition();
+        int projectileSize = projectile.getSize();
+
+        Position playerPos = player.getPosition();
+        int playerSize = player.getSize();
+
+        // 투사체 경계
+        int proLeft = projectilePos.x(); // 왼쪽 경계
+        int proRight = projectilePos.x() + projectileSize; // 오른쪽 경계
+        int proTop = projectilePos.y(); // 상단 경계
+        int proBottom = projectilePos.y() + projectileSize; // 하단 경계
+
+        // 적 경계
+        int playerLeft = playerPos.x();
+        int playerRight = playerPos.x() + playerSize;
+        int playerTop = playerPos.y();
+        int playerBottom = playerPos.y() + playerSize;
+
+        // 충돌 검사
+        boolean collisionX = proLeft < playerRight && proRight > playerLeft;
+        boolean collisionY = proTop < playerBottom && proBottom > playerTop;
+
+        log.debug("[Collision Service] check Projectile & player collisionX : {}, collisionY: {}", collisionX, collisionY);
+        return collisionX && collisionY;
+    }
 }

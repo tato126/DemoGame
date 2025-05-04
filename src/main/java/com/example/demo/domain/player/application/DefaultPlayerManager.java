@@ -45,6 +45,7 @@ public class DefaultPlayerManager implements PlayerRegistry, PlayerFind, PlayerC
         } else {
             log.warn("[PlayerManager] Attempted to remove non-existent player: {}", playerId);
         }
+        log.debug("[PlayerManager] Get current player list: {}", players.size()); // 임시
     }
 
     @Override
