@@ -1,6 +1,7 @@
 package com.example.demo.domain.enemy;
 
 import com.example.demo.domain.common.Direction;
+import com.example.demo.domain.common.GameCalculationUtils;
 import com.example.demo.domain.common.Position;
 import com.example.demo.domain.weapon.Weapon;
 import org.slf4j.Logger;
@@ -30,10 +31,15 @@ public class Enemy {
         return new Enemy(this.id, position, this.size, this.direction, this.defaultWeapon);
     }
 
-    public void fire(Direction targetDirection) {
+    public void fire(Direction projectileDirection) {
         if (defaultWeapon != null) {
-            defaultWeapon.shoot(this.id, this.position, targetDirection);
-            log.debug("[Enemy] Enemy defaultWeapon shoot! : id {}, position {}, targetDir {}", this.id, this.position, targetDirection);
+
+            int projectileSize = 5; // 임시
+
+            Position projectileStartPosition = GameCalculationUtils.calculateProjectileStartPosition(this.position, this.size, projectileSize, projectileDirection, this.id);
+
+            defaultWeapon.shoot(this.id, projectileStartPosition, projectileDirection);
+            log.debug("[Enemy] Enemy defaultWeapon shoot! : id {}, position {}, targetDir {}", this.id, this.position, projectileDirection);
         } else {
             log.debug("[Enemy] Enemy defaultWeapon is null");
         }

@@ -1,7 +1,9 @@
 package com.example.demo.web.dto;
 
+import com.example.demo.domain.common.Direction;
 import com.example.demo.domain.common.Position;
 import com.example.demo.domain.player.Player;
+import com.example.demo.domain.weapon.Weapon;
 
 public class PlayerDto {
 
@@ -9,28 +11,39 @@ public class PlayerDto {
     private int x;
     private int y;
     private int size;
+    private int speed;
+    private Weapon weapon;
+    private Direction direction;
 
 
     public PlayerDto() {
     }
 
-    public PlayerDto(String id, int x, int y, int size) {
+    public PlayerDto(String id, int x, int y, int size, int speed, Weapon weapon, Direction direction) {
         this.id = id;
         this.x = x;
         this.y = y;
         this.size = size;
+        this.speed = speed;
+        this.weapon = weapon;
+        this.direction = direction;
     }
+
 
     public static PlayerDto fromPlayer(Player player) {
         if (player == null) {
             return null;
         }
         Position pos = player.getPosition();
+
         return new PlayerDto(
                 player.getId().toString(),
                 pos.x(),
                 pos.y(),
-                player.getSize()
+                player.getSize(),
+                player.getSpeed(),
+                player.getEquippedWeapon(),
+                player.getDirection()
         );
     }
 
@@ -51,6 +64,18 @@ public class PlayerDto {
         return size;
     }
 
+    public int getSpeed() {
+        return speed;
+    }
+
+    public Weapon getWeapon() {
+        return weapon;
+    }
+
+    public Direction getDirection() {
+        return direction;
+    }
+
     // Setter
     public void setId(String id) {
         this.id = id;
@@ -66,5 +91,17 @@ public class PlayerDto {
 
     public void setSize(int size) {
         this.size = size;
+    }
+
+    public void setSpeed(int speed) {
+        this.speed = speed;
+    }
+
+    public void setWeapon(Weapon weapon) {
+        this.weapon = weapon;
+    }
+
+    public void setDirection(Direction direction) {
+        this.direction = direction;
     }
 }

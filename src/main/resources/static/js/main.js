@@ -6,7 +6,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // --- 게임 상태 변수 (클라이언트 측 상태) ---
-let player = { id: null, x: 0, y: 0, size: 0, color: 'red' }; // 클라이언트 자신의 플레이어 정보, 초기 위치는 서버에서 받음
+let player = { id: null, x: 0, y: 0, size: 0, color: 'red', direction: "UP" }; // 클라이언트 자신의 플레이어 정보, 초기 위치는 서버에서 받음
 let enemies = [];       // 서버로부터 받을 Enemy 목록 배열
 let projectiles = [];   // 서버로부터 받을 Projectile 목록 배열
 
@@ -56,6 +56,8 @@ function connectWebSocket() {
                         player.x = myPlayerData.x; // DTO 필드명과 일치
                         player.y = myPlayerData.y; //
                         player.size = myPlayerData.size; //
+                        player.speed = myPlayerData.speed;
+                        player.direction = myPlayerData.direction;
                     } else {
                         // 서버 목록에 내 ID가 없는 경우 (ex: 게임 오버, 연결 종료 등)
                         console.warn("서버 목록에 내 플레이어 ID가 없습니다! 플레이어 상태 초기화. ID:", player.id);
@@ -116,38 +118,42 @@ function handleKeyDown(e) {
         return;
     }
 
-    let direction = null;
+    let keyDirection = null;
     let actionType = null; // 'move' 또는 'shot' 구분
 
     // 방향키 또는 스페이스바 입력 감지
     switch (e.key) { //
-        case "ArrowUp":    direction = "UP"; actionType = "move"; break;
-        case "ArrowDown":  direction = "DOWN"; actionType = "move"; break;
-        case "ArrowLeft":  direction = "LEFT"; actionType = "move"; break;
-        case "ArrowRight": direction = "RIGHT"; actionType = "move"; break;
+        case "ArrowUp":    keyDirection = "UP"; actionType = "move"; break;
+        case "ArrowDown":  keyDirection = "DOWN"; actionType = "move"; break;
+        case "ArrowLeft":  keyDirection = "LEFT"; actionType = "move"; break;
+        case "ArrowRight": keyDirection = "RIGHT"; actionType = "move"; break;
         case " ": // 스페이스바
         case "Spacebar":
             actionType = "shot";
-            // ★★★ 발사 방향 결정 로직 수정 필요 ★★★
-            // 예시: 현재는 임시로 UP 방향 고정. 실제 게임에서는 플레이어 방향 등을 사용해야 함.
-            direction = "UP"; // 실제 게임 로직에 맞게 수정 (예: 플레이어가 마지막으로 이동한 방향)
+            console.log("현재 발사하는 방향:", player.direction);
             break;
     }
 
     // 메시지 전송
-    if (actionType === "move" && direction) {
+    if (actionType === "move" && keyDirection) {
+
         const moveMessage = {
             type: "move",       // MoveMessage 타입
             playerId: player.id, // 현재 플레이어 ID 포함
-            direction: direction // 방향 포함
+            direction: keyDirection // 방향 포함
         };
         ws.send(JSON.stringify(moveMessage)); //
-        console.log("이동 메시지 전송:", moveMessage);
-    } else if (actionType === "shot" && direction) { // direction도 확인 (발사 방향이 결정되었는지)
+        console.log("이동 메시지 전송:", moveMessage, "플레이어 현재 방향:", keyDirection);
+    } else if (actionType === "shot") {
+    // 발사 시에는 플레이어가 마지막으로 이동했거나 현재 바라보는 방향(player.direction)을 사용
+    if (!player.direction) { // 플레이어가 한 번도 움직이지 않았다면 기본 방향 사용
+        console.warn("플레이어 방향이 설정되지 않아 기본 방향(UP)으로 발사합니다.");
+        player.direction = "UP";
+    }
         const shotMessage = {
             type: "shot",       // ShotMessage 타입
             playerId: player.id, // 현재 플레이어 ID 포함
-            direction: direction // 결정된 발사 방향 사용
+            direction: player.direction // 결정된 발사 방향 사용
         };
         ws.send(JSON.stringify(shotMessage)); //
         console.log("발사 메시지 전송:", shotMessage); // 로그 메시지 명확화

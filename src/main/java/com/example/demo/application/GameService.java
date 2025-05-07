@@ -60,11 +60,13 @@ public class GameService {
         log.debug("[Generated] New Player ID: {}", newPlayerId);
 
         int initialSize = 20;
+        int initialSpeed = 10;
         int startX = (canvas.getWidth() / 2) - (initialSize / 2);
         int startY = (canvas.getHeight() / 2) - (initialSize / 2);
+        Direction initialDirection = Direction.UP;
         Position initialPosition = new Position(startX, startY); // 임시 초기 위치
 
-        Player newPlayer = new Player(newPlayerId, initialPosition, initialSize, defaultPistol);
+        Player newPlayer = new Player(newPlayerId, initialPosition, initialSize, initialSpeed, defaultPistol, initialDirection);
         log.debug("총 객체 생성 {}", defaultPistol);
 
         playerRegistry.addOrUpdate(newPlayer);
@@ -85,12 +87,20 @@ public class GameService {
 
         // 다음 위치 계산
         Position currentPosition = currentPlayer.getPosition();
-        int step = currentPlayer.getSize();
-        Position nextPosition = direction.move(currentPosition, step);
+        int step = currentPlayer.getSpeed();
+
+        Position nextPosition;
+
+        try {
+            nextPosition = currentPosition.moveIndirection(direction, step);
+        } catch (IllegalArgumentException exception) {
+            log.warn("[Service] Invalid step for player move (playerId: {}, step: {}): {}", playerIdStr, step, exception.getMessage());
+            return;
+        }
 
         // 경계 검사
         if (validationService.isPlayerMoveValid(currentPlayer, nextPosition)) {
-            Player movedPlayer = currentPlayer.moveTo(nextPosition);
+            Player movedPlayer = currentPlayer.moveTo(nextPosition, direction);
             playerRegistry.addOrUpdate(movedPlayer);
             log.debug("[Service] Player {} processed move to {}", currentPlayer.getId(), nextPosition);
         } else {

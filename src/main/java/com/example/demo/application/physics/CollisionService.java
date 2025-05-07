@@ -78,7 +78,7 @@ public class CollisionService {
         boolean collisionX = proLeft < enemyRight && proRight > enemyLeft;
         boolean collisionY = proTop < enemyBottom && proBottom > enemyTop;
 
-        log.debug("[Collision Service] check Projectile & Enemy collisionX : {}, collisionY: {}", collisionX, collisionY);
+        log.trace("[Collision Service] check Projectile & Enemy collisionX : {}, collisionY: {}", collisionX, collisionY);
         return collisionX && collisionY;
     }
 
@@ -112,7 +112,7 @@ public class CollisionService {
         boolean collisionX = proLeft < playerRight && proRight > playerLeft;
         boolean collisionY = proTop < playerBottom && proBottom > playerTop;
 
-        log.debug("[Collision Service] check Projectile & player collisionX : {}, collisionY: {}", collisionX, collisionY);
+        log.trace("[Collision Service] check Projectile & player collisionX : {}, collisionY: {}", collisionX, collisionY);
         return collisionX && collisionY;
     }
 }

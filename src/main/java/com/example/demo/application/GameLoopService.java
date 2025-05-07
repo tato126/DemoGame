@@ -222,8 +222,8 @@ public class GameLoopService {
 
         if (stateChanged) {
             webSocketHandler.broadcastGameStateUpdate();
-            log.debug("[GameLoop] 적에게 빵야빵야");
-            log.debug("[GameLoop] Player projectile movement caused state change, broadcasting update");
+            log.trace("[GameLoop] 적에게 빵야빵야");
+            log.trace("[GameLoop] Player projectile movement caused state change, broadcasting update");
         }
     }
 }

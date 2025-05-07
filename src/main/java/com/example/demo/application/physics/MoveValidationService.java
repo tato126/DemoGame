@@ -36,7 +36,7 @@ public class MoveValidationService {
         // 다른 객체와 충돌 검사
         Collection<Enemy> currentEnemies = enemyFind.findAll();
         if (!currentEnemies.isEmpty()) {
-            Player playerNextPosition = player.moveTo(nextPosition);
+            Player playerNextPosition = player.moveTo(nextPosition, player.getDirection());
             for (Enemy currentEnemy : currentEnemies) {
                 if (collisionService.checkPlayerEnemyCollision(playerNextPosition, currentEnemy)) {
                     log.debug("[Validation] Player move blocked by Enemy collision: {} to {}", playerNextPosition, currentEnemy.getPosition());

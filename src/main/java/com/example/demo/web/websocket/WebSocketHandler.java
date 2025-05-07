@@ -75,6 +75,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
                 MoveMessage moveMessage = objectMapper.readValue(payload, MoveMessage.class);
                 String playerId = moveMessage.getPlayerId(); // 클라이언트가 자신의 ID를 보낼도록 함
                 String directionStr = moveMessage.getDirection();
+                log.debug("---- js에서 입력받은 현재 유저의 방향: {}", directionStr);
 
                 log.debug("[HandleTextMessage] - 테스트 - 유효한 키 동작 요청을 받았음");
 
@@ -111,7 +112,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
                 if (firingPlayerId == null || directionStr == null) {
                     log.warn("[WARN] Invalid shot message received (missing fields): {}", payload);
-                    sendErrorMessage(session, "Shot message required 'ProjectileId' and 'directionStrection'");
+                    sendErrorMessage(session, "Shot message required 'ProjectileId' and 'directionString'");
                     return;
                 }
 

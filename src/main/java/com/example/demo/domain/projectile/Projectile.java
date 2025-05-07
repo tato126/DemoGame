@@ -24,7 +24,7 @@ public class Projectile {
     }
 
     public Projectile move() {
-        Position nextPosition = direction.move(this.position, this.speed); // speed 만큼 이동한다? 다소 이상함
+        Position nextPosition = position.moveIndirection(this.direction, this.speed);
         return new Projectile(id, ownerId, nextPosition, direction, size, speed);
     }
 
