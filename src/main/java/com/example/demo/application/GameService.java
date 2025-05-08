@@ -4,12 +4,12 @@ import com.example.demo.application.physics.MoveValidationService;
 import com.example.demo.domain.enemy.application.EnemyCleanUp;
 import com.example.demo.domain.enemy.application.EnemyFind;
 import com.example.demo.domain.enemy.application.EnemyRegistry;
+import com.example.demo.domain.common.AliveStatus;
 import com.example.demo.domain.player.application.PlayerCleanUp;
 import com.example.demo.domain.player.application.PlayerFind;
 import com.example.demo.domain.player.application.PlayerRegistry;
 import com.example.demo.domain.support.IdGenerator;
 import com.example.demo.domain.weapon.Pistol.Pistol;
-import com.example.demo.domain.weapon.Weapon;
 import com.example.demo.infrastructure.config.Canvas;
 import com.example.demo.domain.common.Direction;
 import com.example.demo.domain.common.Position;
@@ -65,8 +65,9 @@ public class GameService {
         int startY = (canvas.getHeight() / 2) - (initialSize / 2);
         Direction initialDirection = Direction.UP;
         Position initialPosition = new Position(startX, startY); // 임시 초기 위치
+        boolean isAlive = true; // 생성시에는 살아있는 상태
 
-        Player newPlayer = new Player(newPlayerId, initialPosition, initialSize, initialSpeed, defaultPistol, initialDirection);
+        Player newPlayer = new Player(newPlayerId, initialPosition, initialSize, initialSpeed, defaultPistol, initialDirection, isAlive);
         log.debug("총 객체 생성 {}", defaultPistol);
 
         playerRegistry.addOrUpdate(newPlayer);
@@ -126,17 +127,48 @@ public class GameService {
         log.debug("[Service] Player {} fired towards {}", playerId, targetDirection);
     }
 
+    public void updatePlayerAliveStatus(String playerIdStr, AliveStatus playerStatus) {
+        PlayerId playerId = PlayerId.of(playerIdStr);
+        Optional<Player> playerOptional = playerFind.findById(playerId);
+
+        if (playerOptional.isEmpty()) {
+            log.debug("[Service] Check Player Received fire request for non-existent player ID: {}", playerIdStr);
+            return;
+        }
+
+        Player currentPlayer = playerOptional.get();
+
+        Player updatePlayer = currentPlayer.updateStatus(playerStatus);
+
+        if (updatePlayer != currentPlayer || updatePlayer.isAlive() != currentPlayer.isAlive()) {
+            playerRegistry.addOrUpdate(updatePlayer);
+            log.trace("[Service] Current Player {} alive status {} is successfully update to {}. New Alive status", playerId, playerStatus, updatePlayer);
+
+            // 추가적으로 게임 오버 로직 추가 가능 -> 게임 오버 메서드는 따로 생성하는 것이 직관적이여 보임
+        }
+
+        log.debug("[Service] CurrentPlayer alive status is change: {}", currentPlayer);
+        log.debug("[Service] Player {} current status is {}", playerId, playerStatus);
+    }
+
+    public void removePlayer(PlayerId playerId) {
+        playerCleanUp.remove(playerId);
+        log.debug("[Service] Player removed: {}", playerId);
+    }
+
     public Enemy spawnInitialEnemy() {
         if (enemyFind.findAll().isEmpty()) {
             EnemyId newEnemyId = idGenerator.generateEnemyId();
             log.debug("[Service] Spawning initial enemy with ID: {}", newEnemyId);
 
             int initialSize = 20;
+            int initialSpeed = 10;
             int initialY = 50;
             int startX = (canvas.getWidth() / 2) - (initialSize / 2);
             Position initialPosition = new Position(startX, initialY);
+            boolean isAlive = true;
 
-            Enemy newEnemy = new Enemy(newEnemyId, initialPosition, initialSize, Direction.RIGHT, defaultPistol);
+            Enemy newEnemy = new Enemy(newEnemyId, initialPosition, initialSize, initialSpeed, Direction.RIGHT, defaultPistol, isAlive);
             enemyRegistry.addOrUpdate(newEnemy);
             log.info("[Service] Initial enemy spawned and registered: {}", newEnemyId);
             return newEnemy;
@@ -146,6 +178,28 @@ public class GameService {
             // 첫 번째 적을 반환하는 것이 의미 없을 수 있으므로 null 반환 고려
             return enemyFind.findAll().stream().findFirst().orElse(null);
         }
+    }
+
+    public void updateEnemyAliveStatus(String enemyIdStr, AliveStatus enemyStatus) {
+
+        EnemyId enemyId = EnemyId.of(enemyIdStr);
+        Optional<Enemy> enemyOptional = enemyFind.findById(enemyId);
+
+        if (enemyOptional.isEmpty()) {
+            log.debug("[Service] Current enemyId is empty: {}", enemyIdStr);
+            return;
+        }
+
+        Enemy currentEnemy = enemyOptional.get();
+
+        Enemy updateStatusEnemy = currentEnemy.updateStatus(enemyStatus);
+
+        if (updateStatusEnemy != currentEnemy || updateStatusEnemy.isAlive() != currentEnemy.isAlive()) {
+            enemyRegistry.addOrUpdate(updateStatusEnemy);
+            log.trace("[Service] Current Enemy {} alive status {} is successfully update to {}. New Alive status", enemyId, enemyStatus, updateStatusEnemy);
+        }
+
+        log.debug("[Service] Current Enemy alive status is: {}", updateStatusEnemy);
     }
 
     // Not used now
@@ -164,10 +218,6 @@ public class GameService {
 //        log.debug("[Service] Enemy {} fired towards {}", enemyId, targetDirection);
 //    }
 
-    public void removePlayer(PlayerId playerId) {
-        playerCleanUp.remove(playerId);
-        log.debug("[Service] Player removed: {}", playerId);
-    }
 
     // Enemy 또한 Player 와 함께 동시 초기화.
     public void resetGame() {

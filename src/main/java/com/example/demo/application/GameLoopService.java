@@ -1,7 +1,6 @@
 package com.example.demo.application;
 
 import com.example.demo.application.physics.CollisionService;
-import com.example.demo.application.physics.MoveValidationService;
 import com.example.demo.domain.common.Direction;
 import com.example.demo.domain.common.Position;
 import com.example.demo.domain.enemy.Enemy;
@@ -11,9 +10,9 @@ import com.example.demo.domain.enemy.application.EnemyFind;
 import com.example.demo.domain.enemy.application.EnemyRegistry;
 import com.example.demo.domain.player.Player;
 import com.example.demo.domain.player.PlayerId;
+import com.example.demo.domain.common.AliveStatus;
 import com.example.demo.domain.player.application.PlayerCleanUp;
 import com.example.demo.domain.player.application.PlayerFind;
-import com.example.demo.domain.player.application.PlayerRegistry;
 import com.example.demo.domain.projectile.Projectile;
 import com.example.demo.domain.projectile.application.ProjectileCleanUp;
 import com.example.demo.domain.projectile.application.ProjectileFind;
@@ -34,6 +33,8 @@ public class GameLoopService {
 
     private final WebSocketHandler webSocketHandler;
     private final CollisionService collisionService;
+    private final GameService gameService;
+
     private final Canvas canvas;
 
     private final PlayerFind playerFind;
@@ -52,8 +53,9 @@ public class GameLoopService {
     private static final int ENEMY_MOVE_STEP = 5;   // 업데이트 당 이동 거리
     private static final long UPDATE_RATE_MS = 100; // 업데이트 주기 (0.1초)
 
-    public GameLoopService(WebSocketHandler webSocketHandler, CollisionService collisionService, Canvas canvas, PlayerFind playerFind, PlayerCleanUp playerCleanUp, EnemyFind enemyFind, EnemyRegistry enemyRegistry, EnemyCleanUp enemyCleanUp, ProjectileFind projectileFind, ProjectileCleanUp projectileCleanUp, ProjectileRegistry projectileRegistry) {
+    public GameLoopService(WebSocketHandler webSocketHandler, CollisionService collisionService, GameService gameService, Canvas canvas, PlayerFind playerFind, PlayerCleanUp playerCleanUp, EnemyFind enemyFind, EnemyRegistry enemyRegistry, EnemyCleanUp enemyCleanUp, ProjectileFind projectileFind, ProjectileCleanUp projectileCleanUp, ProjectileRegistry projectileRegistry) {
         this.collisionService = collisionService;
+        this.gameService = gameService;
         this.canvas = canvas;
         this.playerFind = playerFind;
         this.playerCleanUp = playerCleanUp;
@@ -88,7 +90,7 @@ public class GameLoopService {
             Direction nextDirection = currentDirection;
 
 
-            log.debug("[GameLoop] currentEnemy dir : {}", currentEnemy.getDirection());
+            log.trace("[GameLoop] currentEnemy dir : {}", currentEnemy.getDirection());
 
             // 1. 다음 위치 계산
             if (currentDirection == Direction.LEFT) {
@@ -101,16 +103,16 @@ public class GameLoopService {
             if (nextPosition.x() <= ENEMY_MIN_X) {
                 nextPosition = new Position(ENEMY_MIN_X, currentPosition.y());
                 nextDirection = Direction.RIGHT;
-                log.debug("[GameLoop] Enemy hit minX boundary, change direction to RIGHT");
+                log.trace("[GameLoop] Enemy hit minX boundary, change direction to RIGHT");
             } else if (nextPosition.x() + currentEnemy.getSize() >= ENEMY_MAX_X + currentEnemy.getSize()) {
 
                 if (nextPosition.x() >= ENEMY_MAX_X) {
                     nextPosition = new Position(ENEMY_MAX_X, currentPosition.y());
                     nextDirection = Direction.LEFT;
-                    log.debug("[GameLoop] Enemy hit maxX boundary, change direction to LEFT");
+                    log.trace("[GameLoop] Enemy hit maxX boundary, change direction to LEFT");
                 }
             }
-            Enemy movedEnemyState = new Enemy(currentEnemy.getId(), nextPosition, currentEnemy.getSize(), nextDirection, currentEnemy.getDefaultWeapon());
+            Enemy movedEnemyState = new Enemy(currentEnemy.getId(), nextPosition, currentEnemy.getSize(), currentEnemy.getSpeed(), nextDirection, currentEnemy.getEquippedWeapon(), currentEnemy.isAlive());
 
             if (!currentEnemy.getPosition().equals(movedEnemyState.getPosition()) || !currentEnemy.getDirection().equals(movedEnemyState.getDirection())) {
                 enemyRegistry.addOrUpdate(movedEnemyState);
@@ -125,7 +127,7 @@ public class GameLoopService {
                 if (player != null) {
                     // TODO: player.getPosition()과 currentEnemy.getPosition()으로 방향 계산 로직 추가 필요. (Vector 계산?)
                     movedEnemyState.fire(fireDirection);
-                    log.debug("[GameLoop] Enemy {} fired towards {}", currentEnemy.getId(), fireDirection);
+                    log.trace("[GameLoop] Enemy {} fired towards {}", currentEnemy.getId(), fireDirection);
                     stateChanged = true;
                 }
             }
@@ -137,7 +139,7 @@ public class GameLoopService {
 
         if (stateChanged) {
             webSocketHandler.broadcastGameStateUpdate();
-            log.debug("[GameLoop] Enemy movement caused state change, broadcasting update");
+            log.trace("[GameLoop] Enemy movement caused state change, broadcasting update");
         }
     }
 
@@ -153,17 +155,19 @@ public class GameLoopService {
         Collection<Enemy> currentEnemies = enemyFind.findAll();
 
         if (currentEnemies.isEmpty()) {
-            log.debug("[GameLoop] currentEnemies list is null");
+            log.trace("[GameLoop] currentEnemies list is null");
             return;
         }
         Collection<Player> currentPlayers = playerFind.findAll();
 
         if (currentPlayers.isEmpty()) {
-            log.debug("[GameLoop] currentPlayers list is null");
+            log.trace("[GameLoop] currentPlayers list is null");
             return;
         }
 
         boolean stateChanged = false;
+        boolean playerDead = false; // 사망 확인 판단
+        boolean enemyDead = false;
 
         for (Projectile currentProjectile : currentProjectiles) {
             Projectile movedProjectile = currentProjectile.move();
@@ -186,10 +190,12 @@ public class GameLoopService {
                     if (collisionService.checkProjectileEnemyCollision(movedProjectile, enemy)) {
                         log.debug("[GameLoop] Player Projectile {} hit Enemy {}", movedProjectile.getId(), enemy.getId());
                         projectileCleanUp.remove(currentProjectile.getId());
+                        gameService.updateEnemyAliveStatus(enemy.getId().toString(), AliveStatus.DEAD);
                         enemyCleanUp.remove(enemy.getId());
 
                         stateChanged = true;
                         hitSomething = true;
+                        enemyDead = true;
                         break;
                     }
                 }
@@ -200,10 +206,12 @@ public class GameLoopService {
                     if (collisionService.checkProjectilePlayerCollision(movedProjectile, player)) {
                         log.debug("[GameLoop] Enemy projectile {} hit player {}", movedProjectile.getId(), player.getId());
                         projectileCleanUp.remove(movedProjectile.getId());
+                        gameService.updatePlayerAliveStatus(player.getId().toString(), AliveStatus.DEAD);  // 플레이어 사망상태 업데이트
                         playerCleanUp.remove(player.getId());
                         log.debug("[GameLoop] Removed playerId: {}", player.getId());
                         stateChanged = true;
                         hitSomething = true;
+                        playerDead = true; // 적의 투사체에 피격시 사망처리
                         break;
                     }
                 }
@@ -224,6 +232,11 @@ public class GameLoopService {
             webSocketHandler.broadcastGameStateUpdate();
             log.trace("[GameLoop] 적에게 빵야빵야");
             log.trace("[GameLoop] Player projectile movement caused state change, broadcasting update");
+            if (playerDead) {
+                log.debug("당신이 죽었습니다. PlayerID: {}", currentPlayers); // 현재의 사용자 id를 가져와야함
+            } else if (enemyDead) {
+                log.debug("적이 죽었습니다. EnemyID: {}", currentEnemies);
+            }
         }
     }
 }

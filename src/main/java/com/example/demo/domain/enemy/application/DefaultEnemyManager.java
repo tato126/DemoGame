@@ -22,7 +22,7 @@ public class DefaultEnemyManager implements EnemyRegistry, EnemyFind, EnemyClean
         Objects.requireNonNull(enemy.getId(), "Enemy Id cannot be null for addOrUpdate.");
 
         enemies.put(enemy.getId(), enemy);
-        log.debug("[EnemyManager] Enemy added or updated: {}", enemy.getId());
+        log.trace("[EnemyManager] Enemy added or updated: {}", enemy.getId());
     }
 
     @Override
@@ -53,6 +53,4 @@ public class DefaultEnemyManager implements EnemyRegistry, EnemyFind, EnemyClean
         enemies.clear();
         log.debug("[EnemyManager] All enemies cleared ({} enemies removed).", count);
     }
-
-
 }

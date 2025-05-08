@@ -2,6 +2,7 @@ package com.example.demo.domain.player;
 
 import com.example.demo.domain.common.Direction;
 import com.example.demo.domain.common.GameCalculationUtils;
+import com.example.demo.domain.common.AliveStatus;
 import com.example.demo.domain.common.Position;
 import com.example.demo.domain.weapon.Weapon;
 import org.slf4j.Logger;
@@ -20,19 +21,44 @@ public class Player {
     private final int speed;
     private Weapon equippedWeapon;
     private final Direction direction;
+    private final boolean isAlive;
 
-    public Player(PlayerId id, Position position, int size, int speed, Weapon initialWeapon, Direction direction) {
+    public Player(PlayerId id, Position position, int size, int speed, Weapon initialWeapon, Direction direction, boolean isAlive) {
         this.id = Objects.requireNonNull(id, "[Player] Id must be not null");
         this.position = Objects.requireNonNull(position, "[Player] Position must be not null");
         this.size = size;
         this.speed = speed;
         this.equippedWeapon = Objects.requireNonNull(initialWeapon, "[Player] Initial weapon must be not null");
         this.direction = Objects.requireNonNull(direction, "[Player] Initial weapon must be not null");
+        this.isAlive = isAlive;
+    }
+
+    public Player updateStatus(AliveStatus newStatus) {
+        Objects.requireNonNull(newStatus, "[Player] New PlayerStatus must be not null");
+
+        boolean newIsAlive = this.isAlive;
+
+        switch (newStatus) {
+            case ALIVE:
+                newIsAlive = true;
+                break;
+            case DEAD:
+                newIsAlive = false;
+                break;
+            case INVINCIBLE: // 현재는 다루지 않음
+                newIsAlive = true;
+                break;
+        }
+
+        if (this.isAlive != newIsAlive) {
+            return new Player(this.id, this.position, this.size, this.speed, this.equippedWeapon, this.direction, newIsAlive);
+        }
+        return this;
     }
 
     public Player moveTo(Position position, Direction newFacingDirection) {
         log.debug("현재 방향: {} , 새로운 방향: {}", this.direction, newFacingDirection);
-        return new Player(this.id, position, this.size, this.speed, this.equippedWeapon, newFacingDirection);
+        return new Player(this.id, position, this.size, this.speed, this.equippedWeapon, newFacingDirection, this.isAlive);
     }
 
     public void fire(Direction projectileDirection) {
@@ -52,7 +78,7 @@ public class Player {
     public Player equipWeapon(Weapon newWeapon) {
         Objects.requireNonNull(newWeapon);
         log.debug("Player {} equipped {}", id, newWeapon.getClass().getSimpleName());
-        return new Player(this.id, position, this.size, this.speed, newWeapon, this.direction);
+        return new Player(this.id, position, this.size, this.speed, newWeapon, this.direction, this.isAlive);
     }
 
     // Getter
@@ -80,6 +106,10 @@ public class Player {
         return equippedWeapon;
     }
 
+    public boolean isAlive() {
+        return isAlive;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
@@ -104,6 +134,7 @@ public class Player {
                 ", speed=" + speed +
                 ", equippedWeapon=" + equippedWeapon +
                 ", direction=" + direction +
+                ", isAlive=" + isAlive +
                 '}';
     }
 }
