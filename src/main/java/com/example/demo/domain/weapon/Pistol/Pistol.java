@@ -7,6 +7,7 @@ import com.example.demo.domain.projectile.ProjectileId;
 import com.example.demo.domain.projectile.application.ProjectileRegistry;
 import com.example.demo.domain.support.IdGenerator;
 import com.example.demo.domain.weapon.Weapon;
+import com.example.demo.infrastructure.config.properties.PistolProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -18,10 +19,12 @@ public class Pistol implements Weapon {
 
     private final IdGenerator idGenerator;
     private final ProjectileRegistry registry;
+    private final PistolProperties pistolProperties;
 
-    public Pistol(IdGenerator idGenerator, ProjectileRegistry registry) {
+    public Pistol(IdGenerator idGenerator, ProjectileRegistry registry, PistolProperties pistolProperties) {
         this.idGenerator = idGenerator;
         this.registry = registry;
+        this.pistolProperties = pistolProperties;
     }
 
     @Override
@@ -32,8 +35,8 @@ public class Pistol implements Weapon {
 
         ProjectileId projectileId = idGenerator.generatedProjectileId();
 
-        int projectileSize = 5;
-        int projectileSpeed = 15; // 초당 픽셀 이동 속도 또는 업데이트당 이동 거리
+        int projectileSize = pistolProperties.size();
+        int projectileSpeed = pistolProperties.speed(); // 초당 픽셀 이동 속도 또는 업데이트당 이동 거리
 
         // 투사체 생성 (속도 벡터 혹은 방향과 속력으로 관리)
         Projectile newProjectile = new Projectile(projectileId, ownerId, startPosition, targetDirection, projectileSize, projectileSpeed);

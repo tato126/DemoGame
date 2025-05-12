@@ -40,7 +40,7 @@ public class PlayerDto {
                 player.getId().toString(),
                 pos.x(),
                 pos.y(),
-                player.getSize(),
+                player.getPlayerSize(),
                 player.getSpeed(),
                 player.getEquippedWeapon(),
                 player.getDirection()

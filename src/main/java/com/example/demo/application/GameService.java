@@ -17,6 +17,8 @@ import com.example.demo.domain.enemy.Enemy;
 import com.example.demo.domain.enemy.EnemyId;
 import com.example.demo.domain.player.Player;
 import com.example.demo.domain.player.PlayerId;
+import com.example.demo.infrastructure.config.properties.EnemyProperties;
+import com.example.demo.infrastructure.config.properties.PlayerProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,9 @@ public class GameService {
     private final MoveValidationService validationService;
     private final Canvas canvas;
 
+    private final PlayerProperties playerProperties;
+    private final EnemyProperties enemyProperties;
+
     private final PlayerFind playerFind;
     private final PlayerRegistry playerRegistry;
     private final PlayerCleanUp playerCleanUp;
@@ -42,10 +47,12 @@ public class GameService {
     private final Pistol defaultPistol;
 
 
-    public GameService(IdGenerator idGenerator, MoveValidationService validationService, Canvas canvas, PlayerFind playerFind, PlayerRegistry playerRegistry, PlayerCleanUp playerCleanUp, EnemyFind enemyFind, EnemyRegistry enemyRegistry, EnemyCleanUp enemyCleanUp, Pistol pistol) {
+    public GameService(IdGenerator idGenerator, MoveValidationService validationService, Canvas canvas, PlayerProperties playerProperties, EnemyProperties enemyProperties, PlayerFind playerFind, PlayerRegistry playerRegistry, PlayerCleanUp playerCleanUp, EnemyFind enemyFind, EnemyRegistry enemyRegistry, EnemyCleanUp enemyCleanUp, Pistol pistol) {
         this.validationService = validationService;
         this.idGenerator = idGenerator;
         this.canvas = canvas;
+        this.playerProperties = playerProperties;
+        this.enemyProperties = enemyProperties;
         this.playerFind = playerFind;
         this.playerRegistry = playerRegistry;
         this.playerCleanUp = playerCleanUp;
@@ -59,8 +66,9 @@ public class GameService {
         PlayerId newPlayerId = idGenerator.generatePlayerId();
         log.debug("[Generated] New Player ID: {}", newPlayerId);
 
-        int initialSize = 20;
-        int initialSpeed = 10;
+        int initialSize = playerProperties.initialSize();
+        int initialSpeed = playerProperties.initialSpeed();
+
         int startX = (canvas.getWidth() / 2) - (initialSize / 2);
         int startY = (canvas.getHeight() / 2) - (initialSize / 2);
         Direction initialDirection = Direction.UP;
@@ -161,9 +169,9 @@ public class GameService {
             EnemyId newEnemyId = idGenerator.generateEnemyId();
             log.debug("[Service] Spawning initial enemy with ID: {}", newEnemyId);
 
-            int initialSize = 20;
-            int initialSpeed = 10;
-            int initialY = 50;
+            int initialSize = enemyProperties.initialSize();
+            int initialSpeed = enemyProperties.initialSpeed();
+            int initialY = enemyProperties.initialY();
             int startX = (canvas.getWidth() / 2) - (initialSize / 2);
             Position initialPosition = new Position(startX, initialY);
             boolean isAlive = true;
@@ -201,23 +209,6 @@ public class GameService {
 
         log.debug("[Service] Current Enemy alive status is: {}", updateStatusEnemy);
     }
-
-    // Not used now
-//    public void enemyFire(String enemyIdStr, Direction targetDirection) {
-//        log.debug("적이 발사합니다.");
-//        EnemyId enemyId = EnemyId.of(enemyIdStr);
-//        Optional<Enemy> enemyOptional = enemyFind.findById(enemyId);
-//
-//        if (enemyOptional.isEmpty()) {
-//            log.debug("[Service] Error: Received fire request for non-existent Enemy ID: {}", enemyIdStr);
-//            return;
-//        }
-//
-//        Enemy currentEnemy = enemyOptional.get();
-//        currentEnemy.fire(targetDirection);
-//        log.debug("[Service] Enemy {} fired towards {}", enemyId, targetDirection);
-//    }
-
 
     // Enemy 또한 Player 와 함께 동시 초기화.
     public void resetGame() {

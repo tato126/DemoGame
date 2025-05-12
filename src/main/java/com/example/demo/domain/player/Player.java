@@ -17,16 +17,16 @@ public class Player {
     //     private final String name;
     private final PlayerId id;
     private final Position position;
-    private final int size;
+    private final int playerSize;
     private final int speed;
-    private Weapon equippedWeapon;
+    private final Weapon equippedWeapon;
     private final Direction direction;
     private final boolean isAlive;
 
-    public Player(PlayerId id, Position position, int size, int speed, Weapon initialWeapon, Direction direction, boolean isAlive) {
+    public Player(PlayerId id, Position position, int playerSize, int speed, Weapon initialWeapon, Direction direction, boolean isAlive) {
         this.id = Objects.requireNonNull(id, "[Player] Id must be not null");
         this.position = Objects.requireNonNull(position, "[Player] Position must be not null");
-        this.size = size;
+        this.playerSize = playerSize;
         this.speed = speed;
         this.equippedWeapon = Objects.requireNonNull(initialWeapon, "[Player] Initial weapon must be not null");
         this.direction = Objects.requireNonNull(direction, "[Player] Initial weapon must be not null");
@@ -51,14 +51,19 @@ public class Player {
         }
 
         if (this.isAlive != newIsAlive) {
-            return new Player(this.id, this.position, this.size, this.speed, this.equippedWeapon, this.direction, newIsAlive);
+            return new Player(this.id, this.position, this.playerSize, this.speed, this.equippedWeapon, this.direction, newIsAlive);
         }
         return this;
     }
 
     public Player moveTo(Position position, Direction newFacingDirection) {
         log.debug("현재 방향: {} , 새로운 방향: {}", this.direction, newFacingDirection);
-        return new Player(this.id, position, this.size, this.speed, this.equippedWeapon, newFacingDirection, this.isAlive);
+        return new Player(this.id, position, this.playerSize, this.speed, this.equippedWeapon, newFacingDirection, this.isAlive);
+    }
+
+    // 차후 이동하지 않고 방향만 바꿀 때 * 지금은 사용하지 않음*
+    public Player moveTo(Direction newDirection) {
+        return new Player(this.id, this.position, this.playerSize, this.speed, this.equippedWeapon, newDirection, this.isAlive);
     }
 
     public void fire(Direction projectileDirection) {
@@ -67,7 +72,7 @@ public class Player {
 
             int projectileSize = 5; // 임시 실제로는 장착 중인 무기의 투사체 크기를 가져와야 함
 
-            Position projectileStartPosition = GameCalculationUtils.calculateProjectileStartPosition(this.position, this.size, projectileSize, this.direction, this.id);
+            Position projectileStartPosition = GameCalculationUtils.calculateProjectileStartPosition(this.position, this.playerSize, projectileSize, this.direction, this.id);
 
             equippedWeapon.shoot(this.id, projectileStartPosition, projectileDirection);
         } else {
@@ -78,7 +83,7 @@ public class Player {
     public Player equipWeapon(Weapon newWeapon) {
         Objects.requireNonNull(newWeapon);
         log.debug("Player {} equipped {}", id, newWeapon.getClass().getSimpleName());
-        return new Player(this.id, position, this.size, this.speed, newWeapon, this.direction, this.isAlive);
+        return new Player(this.id, position, this.playerSize, this.speed, newWeapon, this.direction, this.isAlive);
     }
 
     // Getter
@@ -90,8 +95,8 @@ public class Player {
         return position;
     }
 
-    public int getSize() {
-        return size;
+    public int getPlayerSize() {
+        return playerSize;
     }
 
     public int getSpeed() {
@@ -130,7 +135,7 @@ public class Player {
         return "Player{" +
                 "id=" + id +
                 ", position=" + position +
-                ", size=" + size +
+                ", playerSize=" + playerSize +
                 ", speed=" + speed +
                 ", equippedWeapon=" + equippedWeapon +
                 ", direction=" + direction +

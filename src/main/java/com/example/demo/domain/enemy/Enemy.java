@@ -17,16 +17,16 @@ public class Enemy {
 
     private final EnemyId id;
     private final Position position;
-    private final int size;
+    private final int enemySize;
     private final int speed;
-    private Weapon equippedWeapon;
+    private final Weapon equippedWeapon;
     private final Direction direction;
     private final boolean isAlive;
 
-    public Enemy(EnemyId id, Position position, int size, int speed, Direction direction, Weapon equippedWeapon, boolean isAlive) {
+    public Enemy(EnemyId id, Position position, int enemySize, int speed, Direction direction, Weapon equippedWeapon, boolean isAlive) {
         this.id = Objects.requireNonNull(id, "[Enemy] Id must not be null.");
         this.position = Objects.requireNonNull(position, "[Enemy] Position must not be null.");
-        this.size = size;
+        this.enemySize = enemySize;
         this.speed = speed;
         this.direction = direction;
         this.equippedWeapon = equippedWeapon;
@@ -53,14 +53,14 @@ public class Enemy {
         }
 
         if (this.isAlive != newIsAlive) {
-            return new Enemy(this.id, this.position, this.size, this.speed, this.direction, this.equippedWeapon, newIsAlive);
+            return new Enemy(this.id, this.position, this.enemySize, this.speed, this.direction, this.equippedWeapon, newIsAlive);
         }
 
         return this;
     }
 
     public Enemy moveTo(Position position) {
-        return new Enemy(this.id, position, this.size, this.speed, this.direction, this.equippedWeapon, this.isAlive);
+        return new Enemy(this.id, position, this.enemySize, this.speed, this.direction, this.equippedWeapon, this.isAlive);
     }
 
     public void fire(Direction projectileDirection) {
@@ -68,7 +68,7 @@ public class Enemy {
 
             int projectileSize = 5; // 임시
 
-            Position projectileStartPosition = GameCalculationUtils.calculateProjectileStartPosition(this.position, this.size, projectileSize, projectileDirection, this.id);
+            Position projectileStartPosition = GameCalculationUtils.calculateProjectileStartPosition(this.position, this.enemySize, projectileSize, projectileDirection, this.id);
 
             equippedWeapon.shoot(this.id, projectileStartPosition, projectileDirection);
             log.debug("[Enemy] Enemy equippedWeapon shoot! : id {}, position {}, targetDir {}", this.id, this.position, projectileDirection);
@@ -77,9 +77,10 @@ public class Enemy {
         }
     }
 
-    public void equipWeapon(Weapon newWeapon) {
-        this.equippedWeapon = Objects.requireNonNull(newWeapon);
+    public Enemy equipWeapon(Weapon newWeapon) {
+        Objects.requireNonNull(newWeapon);
         log.debug("[Enemy] Enemy {} equipped {}", id, newWeapon.getClass().getSimpleName());
+        return new Enemy(this.id, this.position, this.enemySize, this.speed, this.direction, newWeapon, this.isAlive);
     }
 
     // Getter
@@ -91,8 +92,8 @@ public class Enemy {
         return position;
     }
 
-    public int getSize() {
-        return size;
+    public int getEnemySize() {
+        return enemySize;
     }
 
     public Direction getDirection() {
@@ -129,10 +130,13 @@ public class Enemy {
     @Override
     public String toString() {
         return "Enemy{" +
-                "id='" + id + '\'' +
+                "id=" + id +
                 ", position=" + position +
-                ", size=" + size +
+                ", enemySize=" + enemySize +
+                ", speed=" + speed +
+                ", equippedWeapon=" + equippedWeapon +
                 ", direction=" + direction +
+                ", isAlive=" + isAlive +
                 '}';
     }
 }

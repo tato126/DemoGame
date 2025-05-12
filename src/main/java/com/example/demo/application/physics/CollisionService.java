@@ -23,10 +23,10 @@ public class CollisionService {
 
         // 위치와 크기 가져오기
         Position playerPosition = player.getPosition();
-        int playerSize = player.getSize();
+        int playerSize = player.getPlayerSize();
 
         Position enemyPosition = enemy.getPosition();
-        int enemySize = enemy.getSize();
+        int enemySize = enemy.getEnemySize();
 
         // 플레이어 경계
         int playerLeft = playerPosition.x();
@@ -49,7 +49,7 @@ public class CollisionService {
     }
 
     // Projectile & Enemy Collision
-    public boolean checkProjectileEnemyCollision(Projectile projectile, Enemy enemy) {
+    public boolean checkPlayerProjectileCollision(Projectile projectile, Enemy enemy) {
 
         if (projectile == null || enemy == null) {
             return false;
@@ -60,7 +60,7 @@ public class CollisionService {
         int projectileSize = projectile.getSize();
 
         Position enemyPos = enemy.getPosition();
-        int enemySize = enemy.getSize();
+        int enemySize = enemy.getEnemySize();
 
         // 투사체 경계
         int proLeft = projectilePos.x(); // 왼쪽 경계
@@ -83,7 +83,7 @@ public class CollisionService {
     }
 
     // Projectile & Player Collision
-    public boolean checkProjectilePlayerCollision(Projectile projectile, Player player) {
+    public boolean checkEnemyProjectileCollision(Projectile projectile, Player player) {
 
         if (projectile == null || player == null) {
             return false;
@@ -94,7 +94,7 @@ public class CollisionService {
         int projectileSize = projectile.getSize();
 
         Position playerPos = player.getPosition();
-        int playerSize = player.getSize();
+        int playerSize = player.getPlayerSize();
 
         // 투사체 경계
         int proLeft = projectilePos.x(); // 왼쪽 경계

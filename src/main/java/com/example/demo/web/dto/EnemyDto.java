@@ -27,7 +27,7 @@ public class EnemyDto {
         return new EnemyDto(enemy.getId().toString(),
                 pos.x(),
                 pos.y(),
-                enemy.getSize()
+                enemy.getEnemySize()
         );
     }
 

@@ -2,7 +2,24 @@ game:
   canvas:
     width: 400
     height: 300
-
+  player:
+    initial-size: 20
+    initial-speed: 10
+  enemy:
+    initial-size: 20
+    initial-speed: 10
+    initial-y: 50
+    patrol-min-x: 50 # GameLoopService의 ENEMY_MIN_X
+    patrol-max-x: 330 # GameLoopService의 ENEMY_MAX_X
+    move-step: 5
+  weapon:
+    pistol:
+      size: 5
+      speed: 15
+  scheduling:
+    game-loop-update-rate-ms: 100 # 적 업데이트 주기
+    projectile-update-rate-ms: 30 # 발사체 업데이트 주기
+    enemy-fire-interval-ticks: 10 # GameLoopService의 ENEMY_FIRE_INTERVAL_TICKS
 server:
   port: 8081
 

@@ -1,106 +1,147 @@
 // Demo-main/src/main/resources/static/js/main.js
 
-console.log("main.js 로드됨 - 수정된 버전");
+console.log("main.js 로드됨 - 전역 변수 관리 개선 버전");
 
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+// 게임 관련 상태와 설정을 관리하는 game 객체
+const game = {
+    canvas: null,
+    ctx: null,
+    player: { id: null, x: 0, y: 0, size: 0, color: 'red', direction: "UP" },
+    enemies: [],
+    projectiles: [],
+    websocket: {
+        instance: null,
+        url: `ws://${window.location.host}/game-ws` // 서버 설정과 동일한 엔드포인트 사용
+    },
+    config: {
+        // 색상 등 클라이언트 측에서만 사용되는 설정값들을 여기에 추가할 수 있습니다.
+        // 서버에서 색상 정보를 보내준다면 이 부분은 필요 없을 수 있습니다.
+        defaultPlayerColor: 'red',
+        defaultEnemyColor: 'blue',
+        defaultProjectileColor: 'orange'
+    },
+    isWebSocketConnected: function() {
+        return this.websocket.instance && this.websocket.instance.readyState === WebSocket.OPEN;
+    },
+    canSendMessage: function() {
+        return this.isWebSocketConnected() && this.player.id !== null;
+    }
+};
 
-// --- 게임 상태 변수 (클라이언트 측 상태) ---
-let player = { id: null, x: 0, y: 0, size: 0, color: 'red', direction: "UP" }; // 클라이언트 자신의 플레이어 정보, 초기 위치는 서버에서 받음
-let enemies = [];       // 서버로부터 받을 Enemy 목록 배열
-let projectiles = [];   // 서버로부터 받을 Projectile 목록 배열
+// --- 초기화 코드 ---
+function initializeGame() {
+    game.canvas = document.getElementById('gameCanvas');
+    if (!game.canvas) {
+        console.error("캔버스를 찾을 수 없습니다.");
+        return false;
+    }
+    game.ctx = game.canvas.getContext('2d');
+    if (!game.ctx) {
+        console.error("2D 컨텍스트를 가져올 수 없습니다.");
+        return false;
+    }
 
-// --- 웹소켓 관련 변수 ---
-let ws = null;
-// 현재 페이지의 호스트 주소를 사용하여 웹소켓 URL 동적 생성
-const wsUrl = `ws://${window.location.host}/game-ws`; // 서버 설정과 동일한 엔드포인트 사용
+    console.log("게임 초기화 시작...");
+    drawGame(); // 초기 화면 그리기 (아무것도 없는 상태)
+    connectWebSocket(); // 웹소켓 연결 시작
+    document.addEventListener('keydown', handleKeyDown); // 키보드 리스너 추가
+    console.log("초기화 완료 및 키보드 이벤트 리스너 추가 완료.");
+    return true;
+}
 
 // --- 웹소켓 연결 함수 ---
 function connectWebSocket() {
-    console.log("웹소켓 연결 시도:", wsUrl);
-    ws = new WebSocket(wsUrl); //
+    console.log("웹소켓 연결 시도:", game.websocket.url);
+    game.websocket.instance = new WebSocket(game.websocket.url);
 
-    ws.onopen = () => {
-        console.log("웹소켓 연결 성공!"); //
-        // 연결 성공 시 별도 메시지 전송은 서버 로직에 따라 결정 (현재 서버는 연결 시 바로 플레이어 생성 및 상태 전송)
+    game.websocket.instance.onopen = () => {
+        console.log("웹소켓 연결 성공!");
     };
 
-    ws.onmessage = (event) => {
-        console.log("서버로부터 메시지 수신:", event.data); //
+    game.websocket.instance.onmessage = (event) => {
+        console.log("서버로부터 메시지 수신:", event.data);
         try {
-            const message = JSON.parse(event.data); //
+            const message = JSON.parse(event.data);
 
-            if (message.type === 'gameStateUpdate') { //
-                // --- Player 상태 업데이트 ---
-                const serverPlayers = message.players || []; // players 배열 받기, 없으면 빈 배열
+            if (message.type === 'gameStateUpdate') {
+                const serverPlayers = message.players || [];
                 console.log("받은 플레이어 목록:", serverPlayers);
 
-                // 서버에서 플레이어 목록을 받으면, 클라이언트의 player 객체 업데이트
-                if (player.id === null && serverPlayers.length > 0) {
-                    // 처음 ID를 받는 경우 (혹은 재연결 등) 첫 번째 플레이어를 내 플레이어로 가정 (서버 로직 확인 필요)
-                    // 서버 GameService initializePlayer 및 WebSocketHandler afterConnectionEstablished 로직상
-                    // 연결 시 새 플레이어 ID가 부여되고 해당 ID가 포함된 상태가 전송됨
-                    // find를 통해 내 ID를 찾는 것이 더 안전함
-                     const myPlayerData = serverPlayers[0]; // 단순 첫번째 할당보다는 find가 나을 수 있음. 서버가 보장한다면 OK.
-                     if(myPlayerData){
-                        player.id = myPlayerData.id;
-                        console.log("초기 클라이언트 플레이어 ID 설정:", player.id);
-                     }
-                }
+                // 클라이언트의 player 객체 업데이트 (game.player 사용)
+                if (game.player.id === null && serverPlayers.length > 0) {
+                    // 서버가 보낸 첫 번째 플레이어를 내 플레이어로 가정 (서버 로직에 따라 수정 필요)
+                    // 또는 서버가 명시적으로 클라이언트 ID를 알려주는 메시지 타입 추가 고려
+                    const myPlayerDataFromServer = serverPlayers.find(p => {
+                        // 이 부분은 서버가 클라이언트의 초기 ID를 어떻게 알려주는지에 따라 달라집니다.
+                        // 만약 연결 직후 서버가 보내는 첫 gameStateUpdate의 players 배열에
+                        // 현재 클라이언트의 플레이어 정보가 유일하게 포함되거나,
+                        // 특정 속성(예: isMe=true)으로 구분된다면 해당 로직을 사용합니다.
+                        // 지금은 임시로, 아직 ID가 없고 서버 플레이어 목록에 있으면 첫번째 것을 내것으로 간주합니다.
+                        // 더 견고한 방법은 서버가 연결된 클라이언트에게 고유 ID를 명시적으로 알려주는 것입니다.
+                        return true; // 단순 예시, 실제로는 더 정확한 식별 방법 필요
+                    });
 
-                // 내 플레이어 ID가 설정되었다면, 서버 목록에서 내 정보 찾아 업데이트
-                if (player.id !== null) {
-                    const myPlayerData = serverPlayers.find(p => p.id === player.id); // === 연산자로 수정
-                    if (myPlayerData) {
-                        console.log("내 플레이어 데이터 발견, 상태 업데이트:", myPlayerData);
-                        player.x = myPlayerData.x; // DTO 필드명과 일치
-                        player.y = myPlayerData.y; //
-                        player.size = myPlayerData.size; //
-                        player.speed = myPlayerData.speed;
-                        player.direction = myPlayerData.direction;
-                    } else {
-                        // 서버 목록에 내 ID가 없는 경우 (ex: 게임 오버, 연결 종료 등)
-                        console.warn("서버 목록에 내 플레이어 ID가 없습니다! 플레이어 상태 초기화. ID:", player.id);
-                        player.id = null; // ID 초기화하여 그리지 않도록 함
-                        // 필요하다면 게임 오버 처리 등 추가 로직
+                    if (myPlayerDataFromServer) {
+                         // 서버 DTO에 color가 없다면 클라이언트에서 설정
+                        game.player.id = myPlayerDataFromServer.id;
+                        game.player.color = myPlayerDataFromServer.color || game.config.defaultPlayerColor;
+                        console.log("초기 클라이언트 플레이어 ID 및 색상 설정:", game.player.id, game.player.color);
                     }
                 }
-                // --- Player 상태 업데이트 끝 ---
 
-                // --- Enemy 상태 업데이트 (목록 전체 업데이트) ---
-                const serverEnemies = message.enemies || []; // 없으면 빈 배열
-                enemies = serverEnemies.map(e => ({ ...e, color: 'blue' })); // DTO 구조에 맞게 업데이트
-                // --- Enemy 상태 업데이트 끝 ---
+                if (game.player.id !== null) {
+                    const myPlayerData = serverPlayers.find(p => p.id === game.player.id);
+                    if (myPlayerData) {
+                        console.log("내 플레이어 데이터 발견, 상태 업데이트:", myPlayerData);
+                        game.player.x = myPlayerData.x;
+                        game.player.y = myPlayerData.y;
+                        game.player.size = myPlayerData.size;
+                        // game.player.speed = myPlayerData.speed; // 서버에서 speed를 보내준다면 업데이트
+                        game.player.direction = myPlayerData.direction;
+                         // 서버 DTO에 color가 있다면 사용, 없다면 기존 클라이언트 색상 유지 또는 기본값 사용
+                        game.player.color = myPlayerData.color || game.player.color || game.config.defaultPlayerColor;
+                    } else {
+                        console.warn("서버 목록에 내 플레이어 ID가 없습니다! ID:", game.player.id);
+                        game.player.id = null; // ID 초기화
+                    }
+                }
 
-                // --- Projectile 상태 업데이트 (목록 전체 업데이트) ---
-               const serverProjectiles = message.projectiles || []; // 없으면 빈 배열
-               projectiles = serverProjectiles.map(p => ({ ...p, color: 'orange' })); // DTO 구조에 맞게 업데이트
-                // --- Projectile 상태 업데이트 끝 ---
+                // Enemy 상태 업데이트 (game.enemies 사용)
+                const serverEnemies = message.enemies || [];
+                game.enemies = serverEnemies.map(e => ({
+                    ...e,
+                    color: e.color || game.config.defaultEnemyColor // 서버 DTO에 color가 없다면 클라이언트 기본값 사용
+                }));
 
-                // 변경된 상태로 캔버스 다시 그리기
-                drawGame(); //
+                // Projectile 상태 업데이트 (game.projectiles 사용)
+                const serverProjectiles = message.projectiles || [];
+                game.projectiles = serverProjectiles.map(p => ({
+                    ...p,
+                    color: p.color || game.config.defaultProjectileColor // 서버 DTO에 color가 없다면 클라이언트 기본값 사용
+                }));
 
-            } else if (message.type === 'error') { // 서버에서 보낸 에러 메시지 처리
+                drawGame();
+
+            } else if (message.type === 'error') {
                 console.error("Server error:", message.message);
-                // 사용자에게 오류 알림 등 추가 처리 가능
             } else {
-                 console.log("처리되지 않은 메시지 타입:", message.type); //
+                console.log("처리되지 않은 메시지 타입:", message.type);
             }
         } catch (e) {
-            console.error("메시지 처리 오류:", e, "원본 데이터:", event.data); //
+            console.error("메시지 처리 오류:", e, "원본 데이터:", event.data);
         }
     };
 
-    ws.onerror = (error) => {
-        console.error("웹소켓 오류:", error); //
+    game.websocket.instance.onerror = (error) => {
+        console.error("웹소켓 오류:", error);
     };
 
-    ws.onclose = (event) => {
-        console.log("웹소켓 연결 종료:", event.code, event.reason); //
-        ws = null;
-        player.id = null; // 플레이어 ID 초기화
-        enemies = []; // 다른 객체들도 초기화
-        projectiles = [];
+    game.websocket.instance.onclose = (event) => {
+        console.log("웹소켓 연결 종료:", event.code, event.reason);
+        game.websocket.instance = null;
+        game.player.id = null;
+        game.enemies = [];
+        game.projectiles = [];
         drawGame(); // 화면 클리어
         // 필요시 재연결 로직 추가
         // setTimeout(connectWebSocket, 5000);
@@ -109,96 +150,92 @@ function connectWebSocket() {
 
 // --- 키보드 입력 처리 함수 ---
 function handleKeyDown(e) {
-    if (!ws || ws.readyState !== WebSocket.OPEN) { // 웹소켓 연결 상태 확인
-        console.warn("웹소켓이 연결되지 않았습니다.");
-        return;
-    }
-    if (!player.id) { // 플레이어 ID가 있어야 서버와 통신 가능
-        console.warn("플레이어 ID가 설정되지 않아 메시지를 보낼 수 없습니다.");
+    if (!game.canSendMessage()) {
+        if (!game.isWebSocketConnected()) {
+            console.warn("웹소켓이 연결되지 않았습니다.");
+        } else if (!game.player.id) {
+            console.warn("플레이어 ID가 설정되지 않아 메시지를 보낼 수 없습니다.");
+        }
         return;
     }
 
     let keyDirection = null;
-    let actionType = null; // 'move' 또는 'shot' 구분
+    let actionType = null;
 
-    // 방향키 또는 스페이스바 입력 감지
-    switch (e.key) { //
+    switch (e.key) {
         case "ArrowUp":    keyDirection = "UP"; actionType = "move"; break;
         case "ArrowDown":  keyDirection = "DOWN"; actionType = "move"; break;
         case "ArrowLeft":  keyDirection = "LEFT"; actionType = "move"; break;
         case "ArrowRight": keyDirection = "RIGHT"; actionType = "move"; break;
-        case " ": // 스페이스바
+        case " ":
         case "Spacebar":
             actionType = "shot";
-            console.log("현재 발사하는 방향:", player.direction);
+            // 발사 시에는 현재 플레이어의 방향(game.player.direction)을 사용하므로,
+            // 이동 시 업데이트된 game.player.direction을 참조합니다.
+            console.log("발사 시 사용될 방향:", game.player.direction);
             break;
     }
 
-    // 메시지 전송
     if (actionType === "move" && keyDirection) {
-
         const moveMessage = {
-            type: "move",       // MoveMessage 타입
-            playerId: player.id, // 현재 플레이어 ID 포함
-            direction: keyDirection // 방향 포함
+            type: "move",
+            playerId: game.player.id,
+            direction: keyDirection
         };
-        ws.send(JSON.stringify(moveMessage)); //
-        console.log("이동 메시지 전송:", moveMessage, "플레이어 현재 방향:", keyDirection);
+        game.websocket.instance.send(JSON.stringify(moveMessage));
+        console.log("이동 메시지 전송:", moveMessage);
+        // 클라이언트 측 예측 이동 (선택 사항, 반응성 향상)
+        // game.player.direction = keyDirection; // 서버에서 최종 상태를 받으므로, 클라이언트 예측은 생략하거나 주의해서 사용
     } else if (actionType === "shot") {
-    // 발사 시에는 플레이어가 마지막으로 이동했거나 현재 바라보는 방향(player.direction)을 사용
-    if (!player.direction) { // 플레이어가 한 번도 움직이지 않았다면 기본 방향 사용
-        console.warn("플레이어 방향이 설정되지 않아 기본 방향(UP)으로 발사합니다.");
-        player.direction = "UP";
-    }
+        if (!game.player.direction) { // 혹시 방향이 설정 안된 극초기 상태 방지
+            game.player.direction = "UP"; // 기본값
+            console.warn("플레이어 방향이 설정되지 않아 기본 방향(UP)으로 발사합니다.");
+        }
         const shotMessage = {
-            type: "shot",       // ShotMessage 타입
-            playerId: player.id, // 현재 플레이어 ID 포함
-            direction: player.direction // 결정된 발사 방향 사용
+            type: "shot",
+            playerId: game.player.id,
+            direction: game.player.direction // 현재 플레이어가 바라보는 방향으로 발사
         };
-        ws.send(JSON.stringify(shotMessage)); //
-        console.log("발사 메시지 전송:", shotMessage); // 로그 메시지 명확화
+        game.websocket.instance.send(JSON.stringify(shotMessage));
+        console.log("발사 메시지 전송:", shotMessage);
     }
 }
 
 // --- 통합 그리기 함수 ---
 function drawGame() {
-    if (!ctx) { // 컨텍스트 확인
-        console.error("2D 컨텍스트가 없습니다.");
+    if (!game.ctx) {
+        // console.error("2D 컨텍스트가 없습니다. 게임 그리기를 건너뜁니다."); // 초기화 전 호출될 수 있음
         return;
     }
-    // 1. 캔버스 클리어
-    ctx.clearRect(0, 0, canvas.width, canvas.height); //
+    game.ctx.clearRect(0, 0, game.canvas.width, game.canvas.height);
 
-    // 2. 플레이어 그리기 (자신의 플레이어)
-    // player.id 가 null이 아닐 때만 그림 (서버에서 제거되었거나 아직 ID를 못 받은 경우 방지)
-    if (player.id) { // ID 존재 여부 확인 강화
-        ctx.fillStyle = player.color || 'red'; // 기본 색상
-        ctx.fillRect(player.x, player.y, player.size, player.size); // DTO 기반 위치/크기 사용
+    // 플레이어 그리기 (game.player 사용)
+    if (game.player.id) {
+        game.ctx.fillStyle = game.player.color || game.config.defaultPlayerColor;
+        game.ctx.fillRect(game.player.x, game.player.y, game.player.size, game.player.size);
     }
 
-    // 3. 적(Enemy) 목록 그리기
-    enemies.forEach(enemy => { //
-        if (enemy) { // enemy 객체가 유효한지 확인 (필수는 아님)
-             ctx.fillStyle = enemy.color || 'blue'; // 기본 색상
-             ctx.fillRect(enemy.x, enemy.y, enemy.size, enemy.size); // DTO 기반 위치/크기 사용
+    // 적(Enemy) 목록 그리기 (game.enemies 사용)
+    game.enemies.forEach(enemy => {
+        if (enemy) {
+            game.ctx.fillStyle = enemy.color || game.config.defaultEnemyColor;
+            game.ctx.fillRect(enemy.x, enemy.y, enemy.size, enemy.size);
         }
     });
 
-    // 4. 투사체(Projectile) 목록 그리기
-    projectiles.forEach(projectile => { //
-        if (projectile) { // projectile 객체가 유효한지 확인
-            ctx.fillStyle = projectile.color || 'orange'; // 기본 색상
-            ctx.fillRect(projectile.x, projectile.y, projectile.size, projectile.size); // DTO 기반 위치/크기 사용
+    // 투사체(Projectile) 목록 그리기 (game.projectiles 사용)
+    game.projectiles.forEach(projectile => {
+        if (projectile) {
+            game.ctx.fillStyle = projectile.color || game.config.defaultProjectileColor;
+            game.ctx.fillRect(projectile.x, projectile.y, projectile.size, projectile.size);
         }
     });
 }
 
-// --- 초기화 코드 ---
-if (canvas && ctx) { // 캔버스와 컨텍스트 유효성 검사
-    drawGame(); // 초기 화면 그리기 (아무것도 없는 상태)
-    connectWebSocket(); // 웹소켓 연결 시작
-    document.addEventListener('keydown', handleKeyDown); // 키보드 리스너 추가
-    console.log("초기화 완료 및 키보드 이벤트 리스너 추가 완료.");
-} else {
-    console.error("캔버스 또는 컨텍스트를 찾을 수 없어 초기화 실패."); //
-}
+// --- 게임 시작 ---
+// DOM이 완전히 로드된 후 게임을 초기화합니다.
+document.addEventListener('DOMContentLoaded', () => {
+    if (!initializeGame()) {
+        console.error("게임 초기화 실패.");
+    }
+});

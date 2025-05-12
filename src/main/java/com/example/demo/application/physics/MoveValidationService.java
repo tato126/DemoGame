@@ -29,7 +29,7 @@ public class MoveValidationService {
 
     public boolean isPlayerMoveValid(Player player, Position nextPosition) {
         // 경계 검사
-        if (!canvas.isWithinBounds(nextPosition, player.getSize())) {
+        if (!canvas.isWithinBounds(nextPosition, player.getPlayerSize())) {
             log.debug("[Validation] Player Move blocked by boundary: {} to {}", player.getPosition(), nextPosition);
             return false;
         }
@@ -47,23 +47,23 @@ public class MoveValidationService {
         return true;
     }
 
-    public boolean isProjectileMoveValid(Projectile projectile, Position nextPosition) {
-
-        if (!canvas.isWithinBounds(nextPosition, projectile.getSize())) {
-            log.debug("[Validation] Projectile Move blocked by boundary: {} to {}", projectile.getPosition(), nextPosition);
-            return false;
-        }
-
-        Collection<Enemy> currentEnemies = enemyFind.findAll();
-        if (!currentEnemies.isEmpty()) {
-            Projectile projectileNextPos = projectile.move();
-            for (Enemy currentEnemy : currentEnemies) {
-                if (collisionService.checkProjectileEnemyCollision(projectileNextPos, currentEnemy)) {
-                    log.debug("[Validation] Projectile move blocked by Enemy collision: {} to {}", projectileNextPos, currentEnemy.getPosition());
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
+//    public boolean isProjectileMoveValid(Projectile projectile, Position nextPosition) {
+//
+//        if (!canvas.isWithinBounds(nextPosition, projectile.getSize())) {
+//            log.debug("[Validation] Projectile Move blocked by boundary: {} to {}", projectile.getPosition(), nextPosition);
+//            return false;
+//        }
+//
+//        Collection<Enemy> currentEnemies = enemyFind.findAll();
+//        if (!currentEnemies.isEmpty()) {
+//            Projectile projectileNextPos = projectile.move();
+//            for (Enemy currentEnemy : currentEnemies) {
+//                if (collisionService.checkProjectileEnemyCollision(projectileNextPos, currentEnemy)) {
+//                    log.debug("[Validation] Projectile move blocked by Enemy collision: {} to {}", projectileNextPos, currentEnemy.getPosition());
+//                    return false;
+//                }
+//            }
+//        }
+//        return true;
+//    }
 }
